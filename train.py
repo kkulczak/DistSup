@@ -27,9 +27,18 @@ import uuid
 
 import torch
 
-from distsup.configuration import Configuration, Globals
-from distsup.utils import extract_modify_dict, str2bool
-from distsup.checkpoints import latest_checkpoint, load_state
+from distsup.configuration import (
+    Configuration,
+    Globals,
+)
+from distsup.utils import (
+    extract_modify_dict,
+    str2bool,
+)
+from distsup.checkpoints import (
+    latest_checkpoint,
+    load_state,
+)
 
 
 def get_parser():
@@ -52,9 +61,11 @@ def get_parser():
                         help='For debugging finish training after 1 mnibatch')
     parser.add_argument('--remote-log', action='store_true',
                         help='Send training logs to a remote server')
-    parser.add_argument('--cluster', default=os.environ.get('DISTSUP_CLUSTER', ''),
+    parser.add_argument('--cluster',
+                        default=os.environ.get('DISTSUP_CLUSTER', ''),
                         help='Cluster name metadata')
-    parser.add_argument('-t', '--tag', default=os.environ.get('DISTSUP_EXP_TAG', None),
+    parser.add_argument('-t', '--tag',
+                        default=os.environ.get('DISTSUP_EXP_TAG', None),
                         help='Experiment group name metadata')
     return parser
 
@@ -148,8 +159,11 @@ def main():
     Globals.exp_uuid = get_uuid(args.save_dir)
 
     train_data = config['Datasets']['train']
-    eval_data = {key: config['Datasets'][key]
-                 for key in config['Datasets'].keys() if key != 'train' and key[:6] != 'probe_'}
+    eval_data = {
+        key: config['Datasets'][key]
+        for key in config['Datasets'].keys()
+        if key != 'train' and key[:6] != 'probe_'
+    }
     if 'probe_train' in config['Datasets'].keys():
         probe_train_data = config['Datasets']['probe_train']
     model = config['Model']
@@ -158,13 +172,18 @@ def main():
         initialize_from(model, args.initialize_from)
 
     logging.info("Model summary:\n%s" % (model,))
-    logging.info("Model params:\n%s" % ("\n".join(["%s: %s" % (p[0], p[1].size())
-                                                   for p in model.named_parameters()])))
+    logging.info(
+        "Model params:\n%s" % ("\n".join(
+            [
+                "%s: %s" % (p[0], p[1].size())
+                for p in model.named_parameters()
+            ]
+        ))
+    )
     logging.info(f'Experiment UUID: {Globals.exp_uuid}')
     logging.info(f'BigQuery {"enabled" if Globals.remote_log else "disabled"}')
     logging.info("Start training")
     trainer = config['Trainer']
-
     saved_state = None
     if args.continue_training == 'LAST':
         args.continue_training = latest_checkpoint(args.save_dir)
@@ -174,13 +193,13 @@ def main():
 
     if 'probe_train' in config['Datasets'].keys():
         trainer.run(args.save_dir, model, train_data, eval_data,
-                saved_state=saved_state,
-                debug_skip_training=args.debug_skip_training,
-                probe_train_data = probe_train_data)
+                    saved_state=saved_state,
+                    debug_skip_training=args.debug_skip_training,
+                    probe_train_data=probe_train_data)
     else:
         trainer.run(args.save_dir, model, train_data, eval_data,
-                saved_state=saved_state,
-                debug_skip_training=args.debug_skip_training)
+                    saved_state=saved_state,
+                    debug_skip_training=args.debug_skip_training)
 
 
 if __name__ == "__main__":

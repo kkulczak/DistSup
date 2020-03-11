@@ -30,20 +30,22 @@ import pickle
 import torch
 from torch.nn.utils import clip_grad_norm_
 
-from distsup import checkpoints, utils
+from distsup import (
+    checkpoints,
+    utils,
+)
 from distsup.configuration import Globals
 from distsup.logger import DefaultTensorLogger
 from distsup.utils import DebugStats
 from distsup import summary
 
-
 logger = DefaultTensorLogger()
 
 DEFAULT_LR_SCHEDULER = {
-        'class_name': torch.optim.lr_scheduler.ReduceLROnPlateau,
-        'factor': 0.5,
-        'patience': 3
-        }
+    'class_name': torch.optim.lr_scheduler.ReduceLROnPlateau,
+    'factor':     0.5,
+    'patience':   3
+}
 
 INF = float('inf')
 NEGINF = float('-inf')
@@ -69,7 +71,7 @@ class GradientClipper(object):
                 clipped, skipped)
         else:
             (acc_steps, g_min, g_sum, g_max, n_clipped, n_skipped
-             ) = self.gstats
+            ) = self.gstats
             self.gstats = (
                 acc_steps + 1,
                 min(g_min, unclipped_norm),
@@ -79,7 +81,7 @@ class GradientClipper(object):
                 n_skipped + skipped)
         if logger.is_currently_logging():
             (acc_steps, g_min, g_sum, g_max, n_clipped, n_skipped
-             ) = self.gstats
+            ) = self.gstats
             logger.log_scalar("gclip/min", g_min)
             logger.log_scalar("gclip/max", g_max)
             logger.log_scalar("gclip/mean", 1.0 * g_sum / acc_steps)
@@ -132,31 +134,31 @@ class Progress(object):
               'Loss {: >8.2f} | '
               '{: >.2f} s/batch | DataLoad {: >.5f}s | '
               'Lr {: >7.5f} | Epoch {} s | Stats {}'.format(
-                self.iter, self.epoch, self.batch, self.data_len,
-                self.loss / self.steps,
-                tik_tok / self.steps,
-                self.data_load_time / self.steps, lr,
-                str(datetime.now() - self.start_time).split('.')[0],
-                ', '.join(["{}: {:.5f}".format(k, v)
-                           for k, v in self.stats_acc.items()
-                           if utils.is_scalar(v)])))
+            self.iter, self.epoch, self.batch, self.data_len,
+            self.loss / self.steps,
+            tik_tok / self.steps,
+            self.data_load_time / self.steps, lr,
+            str(datetime.now() - self.start_time).split('.')[0],
+            ', '.join(["{}: {:.5f}".format(k, v)
+                          for k, v in self.stats_acc.items()
+                          if utils.is_scalar(v)])))
         self.reset()
 
 
 class Trainer(object):
     def __init__(self, num_epochs, learning_rate,
-                 optimizer_name, optimizer_kwargs={},
-                 learning_rate_scheduler=DEFAULT_LR_SCHEDULER,
-                 checkpointer={},
-                 checkpoint_frequency_within_epoch=None,
-                 weight_noise=0, weight_noise_start_iteration=15000,
-                 weight_noise_linear_increase=True,
-                 weight_noise_prevent_lr_step=True,
-                 log_frequency=100, output_frequency=100, gradient_noise=None,
-                 gradient_clipping=None,
-                 kill_on_nan=True,
-                 log_layers_stats=False, polyak_decay=0,
-                 codebook_lr=None):
+        optimizer_name, optimizer_kwargs={},
+        learning_rate_scheduler=DEFAULT_LR_SCHEDULER,
+        checkpointer={},
+        checkpoint_frequency_within_epoch=None,
+        weight_noise=0, weight_noise_start_iteration=15000,
+        weight_noise_linear_increase=True,
+        weight_noise_prevent_lr_step=True,
+        log_frequency=100, output_frequency=100, gradient_noise=None,
+        gradient_clipping=None,
+        kill_on_nan=True,
+        log_layers_stats=False, polyak_decay=0,
+        codebook_lr=None):
         super(Trainer, self).__init__()
 
         self.log_frequency = log_frequency
@@ -182,7 +184,8 @@ class Trainer(object):
         self.polyak_decay = polyak_decay
         self.gradient_noise = gradient_noise
         self.checkpointer = checkpoints.Checkpointer(**checkpointer)
-        self.checkpoint_frequency_within_epoch = checkpoint_frequency_within_epoch
+        self.checkpoint_frequency_within_epoch = \
+            checkpoint_frequency_within_epoch
 
     def _log_train_batch(self, loss, stats, optimizer):
         logger.log_scalar('_loss', loss.item())
@@ -191,16 +194,18 @@ class Trainer(object):
             if is_scalar:
                 logger.log_scalar('_' + k, scalar_val)
             else:
-                utils.log(f"Could not log stat '{k}' to Tensorboard, since it is not a scalar or equivalent.",
-                          level=logging.WARNING,
-                          once=True)
+                utils.log(
+                    f"Could not log stat '{k}' to Tensorboard, since it is "
+                    f"not a scalar or equivalent.",
+                    level=logging.WARNING,
+                    once=True)
 
         for i, param_group in enumerate(optimizer.param_groups):
             logger.log_scalar('_learning_rate{}'.format(i), param_group['lr'])
 
     def run(self, save_dir, model, train_dataset, eval_datasets=None,
-            saved_state=None, debug_skip_training=False,
-            probe_train_data=None):
+        saved_state=None, debug_skip_training=False,
+        probe_train_data=None):
         if saved_state:
             model.load_state_dict(saved_state['state_dict'])
             for k in saved_state:
@@ -212,7 +217,7 @@ class Trainer(object):
         if Globals.cuda:
             model.cuda()
             GPUs = [f"{i}) {torch.cuda.get_device_name(i)}"
-                    for i in range(torch.cuda.device_count())]
+                for i in range(torch.cuda.device_count())]
             print(f"Trainer using GPUs: {','.join(GPUs)}.")
         else:
             print("Trainer not using GPU.")
@@ -220,10 +225,15 @@ class Trainer(object):
 
         if self.codebook_lr is not None:
             optimizer = proto(
-                [{'params': model.bottleneck.embedding.parameters(),
-                  'lr': self.codebook_lr},
-                 {'params': model.get_parameters_for_optimizer(with_codebook=False),
-                  'lr': self.learning_rate}],
+                [{
+                    'params': model.bottleneck.embedding.parameters(),
+                    'lr':     self.codebook_lr
+                },
+                    {
+                        'params': model.get_parameters_for_optimizer(
+                            with_codebook=False),
+                        'lr':     self.learning_rate
+                    }],
                 lr=self.learning_rate, **self.optimizer_kwargs)
         else:
             optimizer = proto(
@@ -249,7 +259,7 @@ class Trainer(object):
         if self.log_layers_stats:
             self.dbg = DebugStats.attach(model, logger)
 
-        for epoch in range(start_epoch, self.num_epochs+1):
+        for epoch in range(start_epoch, self.num_epochs + 1):
             Globals.epoch = epoch
             self.iterate_epoch(
                 epoch, save_dir, model, train_dataset, eval_datasets,
@@ -263,7 +273,7 @@ class Trainer(object):
                 p.requires_grad = False
             for _, probe in model.probes.items():
                 print(probe)
-                for name,layer in probe.named_modules():
+                for name, layer in probe.named_modules():
                     has_parameters = False
                     for name, param in layer.named_parameters():
                         if not "." in name:
@@ -289,17 +299,26 @@ class Trainer(object):
             logger.end_log()
             for epoch in range(1, 11):
                 Globals.epoch = epoch
-                #with torch.backends.cudnn.flags(enabled=False):
+                # with torch.backends.cudnn.flags(enabled=False):
                 self.iterate_epoch(
-                    epoch, save_dir + "/probe_train/", model, probe_train_data, eval_datasets,
+                    epoch, save_dir + "/probe_train/", model, probe_train_data,
+                    eval_datasets,
                     optimizer, lr_scheduler,
                     debug_skip_training=debug_skip_training,
                     only_train_probes=True)
 
-
-    def iterate_epoch(self, epoch, save_dir, model, train_dataset,
-                      eval_datasets, optimizer, lr_scheduler,
-                      debug_skip_training=False, only_train_probes=False):
+    def iterate_epoch(
+        self,
+        epoch,
+        save_dir,
+        model,
+        train_dataset,
+        eval_datasets,
+        optimizer,
+        lr_scheduler,
+        debug_skip_training=False,
+        only_train_probes=False
+    ):
         data_len = len(train_dataset)
         if not only_train_probes:
             model.train()
@@ -329,7 +348,7 @@ class Trainer(object):
             if Globals.cuda:
                 batch = model.batch_to_device(batch, 'cuda')
 
-            #with summary.Summary(model):
+            # with summary.Summary(model):
             if 1:
                 loss, stats = model.minibatch_loss(batch)
 
@@ -364,7 +383,7 @@ class Trainer(object):
                 flush=(self.current_iteration % self.output_frequency == 0))
 
             if (self.checkpoint_frequency_within_epoch and
-                    batch_ind == self.checkpoint_frequency_within_epoch):
+                batch_ind == self.checkpoint_frequency_within_epoch):
                 print('Saving checkpoint...')
                 self.checkpointer.checkpoint(self.current_iteration, epoch,
                                              model, optimizer, lr_scheduler)
@@ -398,8 +417,9 @@ class Trainer(object):
         for subset in eval_results:
             for key, outcome in eval_results[subset].items():
                 self.checkpointer.try_checkpoint_best(
-                    (subset + '_' + key).replace('_', '-').replace("[%]","").replace("/",""),
-                    outcome, # Typically, float value
+                    (subset + '_' + key).replace('_', '-').replace(
+                        "[%]", "").replace("/", ""),
+                    outcome,  # Typically, float value
                     self.current_iteration,
                     epoch, model, optimizer, lr_scheduler)
 
@@ -443,9 +463,10 @@ class Trainer(object):
         results = {}
         for k in eval_datasets:
 
-            # If you provided a specific subset name to evaluate then only do that one.
+            # If you provided a specific subset name to evaluate then only do
+            # that one.
             if eval_subset != "" and k != eval_subset:
-                print("evaluate() Skipping eval dataset named: " + str(k) )
+                print("evaluate() Skipping eval dataset named: " + str(k))
                 continue
 
             results[k] = eval_single_subset(k, eval_datasets[k])
@@ -469,7 +490,9 @@ class Trainer(object):
                         results[name] = eval_single_subset(
                             name, eval_datasets[k])
                     except:
-                        print ("evaluate() No avg_state_dict_ polyak dict found, skip." )
+                        print(
+                            "evaluate() No avg_state_dict_ polyak dict found, "
+                            "skip.")
                 model.load_state_dict(old_state)
 
         return results
@@ -490,11 +513,11 @@ class Trainer(object):
                     setattr(model, polyak_dict_name, deepcopy(st_dict))
             for polyak_dict_name in list(model.__dict__.keys()):
                 if (polyak_dict_name.startswith('avg_state_dict') and
-                        polyak_dict_name not in good_polyak_names):
+                    polyak_dict_name not in good_polyak_names):
                     print("Polyak deleting ", polyak_dict_name)
                     delattr(model, polyak_dict_name)
         elif self.polyak_decay > 0 and \
-                not hasattr(model, 'avg_state_dict'):
+            not hasattr(model, 'avg_state_dict'):
             model.avg_state_dict = deepcopy(model.state_dict())
 
     def calculate_polyak_decay(self, model):
@@ -507,13 +530,13 @@ class Trainer(object):
                 polyak_dict = getattr(model, polyak_dict_name)
                 for k in polyak_dict:
                     polyak_dict[k] = (
-                        decay*polyak_dict[k] +
-                        (1 - decay)*st[k])
+                        decay * polyak_dict[k] +
+                        (1 - decay) * st[k])
         elif self.polyak_decay > 0:
             for k in model.avg_state_dict:
                 model.avg_state_dict[k] = (
-                    self.polyak_decay*model.avg_state_dict[k] +
-                    (1 - self.polyak_decay)*st[k])
+                    self.polyak_decay * model.avg_state_dict[k] +
+                    (1 - self.polyak_decay) * st[k])
 
     def check_loss(self, final_loss):
         if torch.isnan(final_loss).item():
@@ -526,8 +549,8 @@ class Trainer(object):
     def apply_gradient_noise(self, optimizer):
         if not self.gradient_noise:
             return
-        var = self.gradient_noise / (1 + self.current_iteration)**0.55
-        var = var**2
+        var = self.gradient_noise / (1 + self.current_iteration) ** 0.55
+        var = var ** 2
         for param_group in optimizer.param_groups:
             for parameter in param_group['params']:
                 parameter.grad += (
