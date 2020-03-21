@@ -201,7 +201,7 @@ class StreamTokenizerNet(probednet.ProbedNet):
                                            mapping=None,
                                            imshow_kwargs=dict(cmap='Greys'))
 
-        return loss + detached_loss + backprop_loss, stats
+        return loss + detached_loss + backprop_loss, stats, tokens
 
     @staticmethod
     def _clustering_metrics(ali_gt, ali_es, prefix=''):

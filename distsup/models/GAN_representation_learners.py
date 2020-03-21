@@ -177,12 +177,23 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         enc_len = None
         if x_len is not None:
             enc, enc_len = enc
-        assert enc.shape[1] * self.encoder.length_reduction == x.shape[1]
+        try:
+            assert enc.shape[1] * self.encoder.length_reduction == x.shape[1]
+        except AssertionError as e:
+            print(e)
+            breakpoint()
+        # torch.save(enc, 'enc_out.pt')
         b, t, h, c = enc.size()
         enc = enc.contiguous().view(b, t, 1, h * c)
         quant, kl, info = self.bottleneck(enc, bottleneck_cond, enc_len=enc_len)
-        conds = (self.latent_mixer(quant),)
-        return x, conds, info
+        # conds = (self.latent_mixer(quant),)
+
+        return (
+            x,
+            None, # conds,
+            info,
+            enc
+        )
 
     def align_tokens_to_features(self, batch, tokens):
         with torch.no_grad():
@@ -320,17 +331,28 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         self.print_ali_num_segments(batch)
         self.pad_features(batch)
         feats = batch['features']
-        bottleneck_cond = self.bottleneck_cond(batch)
-        _, conds, info = self.conditioning(feats, batch.get('features_len'),
-                                           bottleneck_cond)
-        needs_rec_image = logger.is_currently_logging()
+        # bottleneck_cond = self.bottleneck_cond(batch)
+        _, conds, info, encoder_output = self.conditioning(
+            feats,
+            batch.get('features_len'),
+            bottleneck_cond=None
+        )
+        # needs_rec_image = logger.is_currently_logging()
 
-        rec_loss, details, inputs, rec_imgs = self.reconstruction_loss(
-            batch, conds, needs_rec_image=needs_rec_image)
+        # rec_loss, details, inputs, rec_imgs = self.reconstruction_loss(
+        #     batch, conds, needs_rec_image=needs_rec_image)
 
-        self.log_images(feats, info, inputs, rec_imgs)
-
-        return rec_loss, details, info['indices']
+        # self.log_images(feats, info, inputs, rec_imgs)
+        # torch.save(batch, 'batch.pt')
+        #
+        # print('SUCCESS!!!')
+        # exit(0)
+        return (
+            torch.tensor(0., device='cuda'),
+            {},
+            info['indices']
+        )
+        # return rec_loss, details, info['indices']
 
     def log_images(self, feats, info, inputs, rec_imgs):
         # Note: nn.ModuleDict is ordered

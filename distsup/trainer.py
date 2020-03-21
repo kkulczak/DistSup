@@ -350,7 +350,9 @@ class Trainer(object):
 
             # with summary.Summary(model):
             if 1:
-                loss, stats = model.minibatch_loss(batch)
+                loss, stats, tokens = model.minibatch_loss(batch)
+
+
 
             if self.kill_on_nan:
                 self.check_loss(loss)
