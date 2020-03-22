@@ -1,17 +1,17 @@
 import numpy as np
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from distsup import utils
 from distsup.logger import default_tensor_logger
 from distsup.models import streamtokenizer
-from distsup.modules import bottlenecks
-from distsup.modules import convolutional
-from distsup.modules import encoders
-from distsup.modules import reconstructors
-
-from distsup import utils
+from distsup.modules import (
+    bottlenecks,
+    convolutional,
+    encoders,
+    reconstructors,
+)
 
 logger = default_tensor_logger.DefaultTensorLogger()
 
@@ -39,6 +39,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         reconstructor_field=None,
         side_info_encoder=None,
         bottleneck_cond=None,
+        gan_data_manipulation=None,
         **kwargs
     ):
         super(GanRepresentationLearner, self).__init__(**kwargs)
@@ -69,7 +70,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             }
         self.encoder = utils.construct_from_kwargs(
             encoder, additional_parameters={
-                'in_channels':  in_channels,
+                'in_channels': in_channels,
                 'image_height': image_height
             })
         # prevent affecting the encoder by the dummy minibatch
@@ -91,7 +92,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             torch.empty((1, 500, 1, bottleneck_latent_dim))).size(3)
 
         cond_channels_spec = [{
-            'cond_dim':         mixer_out_channels,
+            'cond_dim': mixer_out_channels,
             'reduction_factor': self.encoder.length_reduction
         }]
 
@@ -100,15 +101,23 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             self.side_info_encoder = utils.construct_from_kwargs(
                 side_info_encoder)
             cond_channels_spec.append({
-                'cond_dim':         side_info_encoder['embedding_dim'],
+                'cond_dim': side_info_encoder['embedding_dim'],
                 'reduction_factor': 0
             })
         self.bottleneck_cond = lambda x: None
         if bottleneck_cond is not None:
             self.bottleneck_cond = utils.construct_from_kwargs(bottleneck_cond)
-
+        if gan_data_manipulation is None:
+            self.gan_data_manipulation = None
+        else:
+            self.gan_data_manipulation = utils.construct_from_kwargs(
+                gan_data_manipulation,
+                additional_parameters={
+                    'encoder_length_reduction': self.encoder.length_reduction,
+                }
+            )
         rec_params = {
-            'image_height':  image_height,
+            'image_height': image_height,
             'cond_channels': cond_channels_spec
         }
 
@@ -190,7 +199,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
 
         return (
             x,
-            None, # conds,
+            None,  # conds,
             info,
             enc
         )
@@ -208,7 +217,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         #      from reconstructions
         import matplotlib.pyplot as plt
         plt.rcParams.update({
-            'font.size':       3,
+            'font.size': 3,
             'xtick.labelsize': 'x-small',
             'ytick.labelsize': 'x-small',
         })
