@@ -40,6 +40,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         side_info_encoder=None,
         bottleneck_cond=None,
         gan_data_manipulation=None,
+        gan_generator=None,
         **kwargs
     ):
         super(GanRepresentationLearner, self).__init__(**kwargs)
@@ -107,6 +108,8 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         self.bottleneck_cond = lambda x: None
         if bottleneck_cond is not None:
             self.bottleneck_cond = utils.construct_from_kwargs(bottleneck_cond)
+
+        # Gan definitions section
         if gan_data_manipulation is None:
             self.gan_data_manipulation = None
         else:
@@ -116,6 +119,18 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
                     'encoder_length_reduction': self.encoder.length_reduction,
                 }
             )
+
+        if gan_generator is None:
+            self.gan_generator = gan_generator
+        else:
+            self.gan_generator = utils.construct_from_kwargs(
+                gan_generator,
+                additional_parameters={
+                    'concat_window': self.gan_data_manipulation.windows_size,
+                    'encoder_element_size': self.encoder.hid_channels,
+                }
+            )
+
         rec_params = {
             'image_height': image_height,
             'cond_channels': cond_channels_spec
@@ -336,33 +351,6 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             }"""
         )
 
-    def minibatch_loss_and_tokens(self, batch):
-        self.print_ali_num_segments(batch)
-        self.pad_features(batch)
-        feats = batch['features']
-        # bottleneck_cond = self.bottleneck_cond(batch)
-        _, conds, info, encoder_output = self.conditioning(
-            feats,
-            batch.get('features_len'),
-            bottleneck_cond=None
-        )
-        # needs_rec_image = logger.is_currently_logging()
-
-        # rec_loss, details, inputs, rec_imgs = self.reconstruction_loss(
-        #     batch, conds, needs_rec_image=needs_rec_image)
-
-        # self.log_images(feats, info, inputs, rec_imgs)
-        # torch.save(batch, 'batch.pt')
-        #
-        # print('SUCCESS!!!')
-        # exit(0)
-        return (
-            torch.tensor(0., device='cuda'),
-            {},
-            info['indices']
-        )
-        # return rec_loss, details, info['indices']
-
     def log_images(self, feats, info, inputs, rec_imgs):
         # Note: nn.ModuleDict is ordered
         for (name, rec), rec_input, rec_img in zip(self.reconstructors.items(),
@@ -389,3 +377,39 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
                 # sample_plot = rec.plot_debug_samples(priming, img_conds)
                 # if sample_plot is not None:
                 #     logger.log_mpl_figure(f'gen_samples{name}', sample_plot)
+
+    def minibatch_loss_and_tokens(self, batch):
+        self.print_ali_num_segments(batch)
+        self.pad_features(batch)
+        feats = batch['features']
+        # bottleneck_cond = self.bottleneck_cond(batch)
+        _, conds, info, encoder_output = self.conditioning(
+            feats,
+            batch.get('features_len'),
+            bottleneck_cond=None
+        )
+        device = encoder_output.device
+        print('encoder_output', encoder_output.device)
+        batched_sample_frame, target, lens = \
+            self.gan_data_manipulation.prepare_gan_batch(
+                encoder_output.cpu(),
+                batch['alignment'].cpu()
+            )
+        gen_out = self.gan_generator(batched_sample_frame.to(device))
+
+        # needs_rec_image = logger.is_currently_logging()
+
+        # rec_loss, details, inputs, rec_imgs = self.reconstruction_loss(
+        #     batch, conds, needs_rec_image=needs_rec_image)
+
+        # self.log_images(feats, info, inputs, rec_imgs)
+        # torch.save(batch, 'batch.pt')
+        #
+        # print('SUCCESS!!!')
+        # exit(0)
+        return (
+            torch.tensor(0., device='cuda'),
+            {},
+            info['indices']
+        )
+        # return rec_loss, details, info['indices']

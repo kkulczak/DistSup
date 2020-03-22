@@ -83,6 +83,7 @@ class ConvStack1D(nn.Module):
                  num_postproc=0,  # 1 Convs to add more depth
                  ):
         super(ConvStack1D, self).__init__()
+        self.hid_channels = hid_channels
         self.in_to_hid = nn.Conv1d(in_channels * image_height, hid_channels, 1)
         self.preproc_layers = nn.ModuleList([
             nn.Conv1d(hid_channels, hid_channels, 3, padding=1)

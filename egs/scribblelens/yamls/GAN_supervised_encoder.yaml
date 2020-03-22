@@ -60,6 +60,10 @@ Model:
     windows_size: 5
     max_sentence_length: 37
     repeat: 6
+  gan_generator:
+    class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
+    hidden_size: 256
+    dictionary_size: 70
 
 
 Trainer:

@@ -24,7 +24,7 @@ class GanConcatedWindowsDataManipulation:
 
     def generate_indexer(self, phrase_length) -> torch.tensor:
         concat_window_indexes = (
-            (np.arange(self.window_size) - self.window_size // 2)[None, :]
+            (np.arange(self.windows_size) - self.windows_size // 2)[None, :]
             + (np.arange(phrase_length)[:, None])
         )
         concat_window_indexes[concat_window_indexes < 0] = 0
@@ -65,7 +65,7 @@ class GanConcatedWindowsDataManipulation:
         x = x.squeeze()
         batch_size, phrase_length, data_size = x.shape
 
-        indexer = self.generate_indexer(self.windows_size, phrase_length)
+        indexer = self.generate_indexer(phrase_length)
         windowed_x = x[:, indexer].view(
             (batch_size, phrase_length, self.windows_size * data_size)
         )
