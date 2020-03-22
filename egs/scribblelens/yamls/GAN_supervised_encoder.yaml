@@ -63,6 +63,7 @@ Model:
 
 
 Trainer:
+  class_name: distsup.gan_trainer.TrainerForGan
   checkpointer:
     every_n_hours: 4
 #  gradient_clipping:
