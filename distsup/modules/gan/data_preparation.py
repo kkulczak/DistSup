@@ -2,7 +2,9 @@ import numpy as np
 import torch
 from torch.nn.functional import pad
 
-from distsup.utils import rleEncode
+from distsup.utils import (
+    rleEncode,
+)
 
 
 # DICT_SIZE = 70
@@ -12,12 +14,12 @@ class GanConcatedWindowsDataManipulation:
     def __init__(
         self,
         encoder_length_reduction,
-        windows_size=5,
+        concat_window=5,
         max_sentence_length=37,
         repeat=6,
     ):
         self.encoder_length_reduction = encoder_length_reduction
-        self.windows_size = windows_size
+        self.windows_size = concat_window
         self.max_sentence_length = max_sentence_length
         self.repeat = repeat
         pass
@@ -35,11 +37,15 @@ class GanConcatedWindowsDataManipulation:
 
     def extract_alignment_data(self, alignment):
         encoded = [rleEncode(x) for x in alignment]
-        ranges = [x[0][:, 0].squeeze() for x in encoded]
+        ranges = [(x[0][:, 0]).squeeze() for x in encoded]
         values = [x[1] for x in encoded]
         lens = torch.tensor([len(x) for x in values])
 
         def padded_tensor(xs):
+            xs = [
+                x if len(x.shape) != 0  else torch.tensor([x])
+                for x in xs
+            ]
             return torch.stack([
                 torch.cat([
                     x,
@@ -54,7 +60,7 @@ class GanConcatedWindowsDataManipulation:
         train_bnd = padded_tensor(ranges)
         train_bnd_range = pad(
             train_bnd[:, 1:] - train_bnd[:, :-1],
-            (0, 1, 0, 0),
+            [0, 1, 0, 0],
         )
         train_bnd_range[train_bnd_range < 0] = 0.
 
@@ -91,7 +97,6 @@ class GanConcatedWindowsDataManipulation:
             + random_pick * train_bnd_range.repeat(self.repeat, 1).type(
             torch.float)
         ).round().type(torch.long)
-        print(sample_frame_ids[:2])
 
         batched_sample_frame = expanded_x.repeat(self.repeat, 1, 1)[
             np.arange(batch_size * self.repeat).reshape([-1, 1]),

@@ -13,22 +13,20 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import (
+    absolute_import,
+    division,
+    print_function,
+)
 
-import collections
 import logging
+import time
 from copy import deepcopy
 from datetime import datetime
-
-import time
-
-import numpy as np
-import pickle
+from typing import Optional
 
 import torch
-from torch.nn.utils import clip_grad_norm_
+from tqdm import tqdm
 
 from distsup import (
     checkpoints,
@@ -36,29 +34,37 @@ from distsup import (
 )
 from distsup.configuration import Globals
 from distsup.logger import DefaultTensorLogger
+from distsup.modules.gan.secondary_trainer import (
+    GanConfig,
+    SecondaryTrainerGAN,
+)
 from distsup.trainer import (
     GradientClipper,
     Progress,
 )
 from distsup.utils import DebugStats
-from distsup import summary
 
 logger = DefaultTensorLogger()
 
 DEFAULT_LR_SCHEDULER = {
     'class_name': torch.optim.lr_scheduler.ReduceLROnPlateau,
-    'factor':     0.5,
-    'patience':   3
+    'factor': 0.5,
+    'patience': 3
 }
 
 INF = float('inf')
 NEGINF = float('-inf')
 
+
 class TrainerForGan(object):
-    def __init__(self, num_epochs, learning_rate,
-        optimizer_name, optimizer_kwargs={},
-        learning_rate_scheduler=DEFAULT_LR_SCHEDULER,
-        checkpointer={},
+    def __init__(
+        self,
+        num_epochs,
+        learning_rate,
+        optimizer_name,
+        optimizer_kwargs=None,
+        learning_rate_scheduler=None,
+        checkpointer=None,
         checkpoint_frequency_within_epoch=None,
         weight_noise=0, weight_noise_start_iteration=15000,
         weight_noise_linear_increase=True,
@@ -66,10 +72,19 @@ class TrainerForGan(object):
         log_frequency=100, output_frequency=100, gradient_noise=None,
         gradient_clipping=None,
         kill_on_nan=True,
-        log_layers_stats=False, polyak_decay=0,
-        codebook_lr=None):
+        log_layers_stats=False,
+        polyak_decay=0,
+        codebook_lr=None,
+        gan_config=None,
+    ):
         super(TrainerForGan, self).__init__()
 
+        if checkpointer is None:
+            checkpointer = {}
+        if learning_rate_scheduler is None:
+            learning_rate_scheduler = DEFAULT_LR_SCHEDULER
+        if optimizer_kwargs is None:
+            optimizer_kwargs = {}
         self.log_frequency = log_frequency
         self.output_frequency = output_frequency
         self.num_epochs = num_epochs
@@ -95,6 +110,10 @@ class TrainerForGan(object):
         self.checkpointer = checkpoints.Checkpointer(**checkpointer)
         self.checkpoint_frequency_within_epoch = \
             checkpoint_frequency_within_epoch
+
+        self.gan_config = GanConfig(**gan_config)
+        self.gan_trainer: Optional[SecondaryTrainerGAN] = None
+
 
     def _log_train_batch(self, loss, stats, optimizer):
         logger.log_scalar('_loss', loss.item())
@@ -136,12 +155,12 @@ class TrainerForGan(object):
             optimizer = proto(
                 [{
                     'params': model.bottleneck.embedding.parameters(),
-                    'lr':     self.codebook_lr
+                    'lr': self.codebook_lr
                 },
                     {
                         'params': model.get_parameters_for_optimizer(
                             with_codebook=False),
-                        'lr':     self.learning_rate
+                        'lr': self.learning_rate
                     }],
                 lr=self.learning_rate, **self.optimizer_kwargs)
         else:
@@ -167,6 +186,12 @@ class TrainerForGan(object):
 
         if self.log_layers_stats:
             self.dbg = DebugStats.attach(model, logger)
+
+        self.gan_trainer = SecondaryTrainerGAN(
+            model=model,
+            train_dataloader=train_dataset,
+            config=self.gan_config
+        )
 
         for epoch in range(start_epoch, self.num_epochs + 1):
             Globals.epoch = epoch
@@ -257,11 +282,14 @@ class TrainerForGan(object):
             if Globals.cuda:
                 batch = model.batch_to_device(batch, 'cuda')
 
+            #### HERE GAN GOING!!!
+            self.gan_trainer.iterate_step()
+
             # with summary.Summary(model):
             if 1:
-                loss, stats, tokens = model.minibatch_loss(batch)
-
-
+                loss, stats, tokens = model.minibatch_loss(
+                    batch,
+                )
 
             if self.kill_on_nan:
                 self.check_loss(loss)
@@ -492,5 +520,3 @@ class TrainerForGan(object):
             for name, weight in model.named_parameters():
                 if 'weight' in name and 'batch_norm' not in name:
                     weight.data.add_(-noise_values[name])
-
-

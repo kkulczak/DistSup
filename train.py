@@ -153,8 +153,11 @@ def main():
         ensure_logger_environ()
 
     modify_dict = extract_modify_dict(args.modify_config)
-    config = Configuration(args.config, modify_dict,
-                           get_config_filename(args.save_dir))
+    config = Configuration(
+        args.config,
+        modify_dict,
+        get_config_filename(args.save_dir)
+    )
     Globals.objects_config = copy.deepcopy(config.objects_config)
     Globals.exp_uuid = get_uuid(args.save_dir)
 

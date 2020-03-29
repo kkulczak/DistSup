@@ -176,7 +176,7 @@ class StreamTokenizerNet(probednet.ProbedNet):
         """
         raise NotImplementedError
 
-    def minibatch_loss_and_tokens(self, batch):
+    def minibatch_loss_and_tokens(self, batch, **kwargs):
         """
         This method performs the forward pass and returns the loss, the
         stats dictionary and the sequence of tokens.
@@ -186,8 +186,11 @@ class StreamTokenizerNet(probednet.ProbedNet):
         """
         raise NotImplementedError
 
-    def minibatch_loss(self, batch):
-        loss, stats, tokens = self.minibatch_loss_and_tokens(batch)
+    def minibatch_loss(self, batch, **kwargs):
+        loss, stats, tokens = self.minibatch_loss_and_tokens(
+            batch,
+            **kwargs,
+        )
         detached_loss, backprop_loss, probes_details = self.probes_loss(batch)
         stats.update(probes_details)
         stats['probes_detached_loss'] = detached_loss

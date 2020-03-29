@@ -55,15 +55,11 @@ Model:
         aggreg: 1
         use_two_layer_predictor: False
       bp_to_main: True
-  gan_data_manipulation:
-    class_name: distsup.modules.gan.data_preparation.GanConcatedWindowsDataManipulation
-    windows_size: 5
-    max_sentence_length: 37
-    repeat: 6
   gan_generator:
     class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
-    hidden_size: 256
-    dictionary_size: 70
+    gan_config: True
+  gan_discriminator:
+    gan_config: True
 
 
 Trainer:
@@ -82,3 +78,14 @@ Trainer:
   optimizer_name: Adam
 #  polyak_decay:
 #  - 0.998
+
+gan_config:
+    concat_window: 5
+    dictionary_size: 70
+    max_sentence_length: 37
+    repeat: 6
+# Discriminator part
+    dis_steps: 3
+# Generator part
+    gen_steps: 1
+    gen_hidden_size: 256

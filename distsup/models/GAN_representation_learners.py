@@ -39,8 +39,8 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         reconstructor_field=None,
         side_info_encoder=None,
         bottleneck_cond=None,
-        gan_data_manipulation=None,
         gan_generator=None,
+        gan_discriminator=None,
         **kwargs
     ):
         super(GanRepresentationLearner, self).__init__(**kwargs)
@@ -110,15 +110,6 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             self.bottleneck_cond = utils.construct_from_kwargs(bottleneck_cond)
 
         # Gan definitions section
-        if gan_data_manipulation is None:
-            self.gan_data_manipulation = None
-        else:
-            self.gan_data_manipulation = utils.construct_from_kwargs(
-                gan_data_manipulation,
-                additional_parameters={
-                    'encoder_length_reduction': self.encoder.length_reduction,
-                }
-            )
 
         if gan_generator is None:
             self.gan_generator = gan_generator
@@ -126,10 +117,11 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             self.gan_generator = utils.construct_from_kwargs(
                 gan_generator,
                 additional_parameters={
-                    'concat_window': self.gan_data_manipulation.windows_size,
                     'encoder_element_size': self.encoder.hid_channels,
                 }
             )
+        if gan_discriminator is None:
+            self.gan_discriminator = gan_discriminator
 
         rec_params = {
             'image_height': image_height,
@@ -378,38 +370,32 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
                 # if sample_plot is not None:
                 #     logger.log_mpl_figure(f'gen_samples{name}', sample_plot)
 
-    def minibatch_loss_and_tokens(self, batch):
-        self.print_ali_num_segments(batch)
+    def minibatch_loss_and_tokens(
+        self,
+        batch,
+        real_batch=None,
+        train_element=None,
+        return_encoder_output=False,
+    ):
+
+        # self.print_ali_num_segments(batch)
         self.pad_features(batch)
         feats = batch['features']
-        # bottleneck_cond = self.bottleneck_cond(batch)
+        bottleneck_cond = self.bottleneck_cond(batch)
         _, conds, info, encoder_output = self.conditioning(
             feats,
             batch.get('features_len'),
-            bottleneck_cond=None
+            bottleneck_cond
         )
-        device = encoder_output.device
-        print('encoder_output', encoder_output.device)
-        batched_sample_frame, target, lens = \
-            self.gan_data_manipulation.prepare_gan_batch(
-                encoder_output.cpu(),
-                batch['alignment'].cpu()
-            )
-        gen_out = self.gan_generator(batched_sample_frame.to(device))
 
-        # needs_rec_image = logger.is_currently_logging()
+        if return_encoder_output:
+            return encoder_output.detach()
 
-        # rec_loss, details, inputs, rec_imgs = self.reconstruction_loss(
-        #     batch, conds, needs_rec_image=needs_rec_image)
+        needs_rec_image = logger.is_currently_logging()
 
-        # self.log_images(feats, info, inputs, rec_imgs)
-        # torch.save(batch, 'batch.pt')
-        #
-        # print('SUCCESS!!!')
-        # exit(0)
-        return (
-            torch.tensor(0., device='cuda'),
-            {},
-            info['indices']
-        )
-        # return rec_loss, details, info['indices']
+        rec_loss, details, inputs, rec_imgs = self.reconstruction_loss(
+            batch, conds, needs_rec_image=needs_rec_image)
+
+        self.log_images(feats, info, inputs, rec_imgs)
+
+        return rec_loss, details, info['indices']

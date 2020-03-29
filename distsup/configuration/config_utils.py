@@ -104,6 +104,13 @@ class ConfigParser:
     def get_config(self, modify_dict={}):
         self.init_config_dict()
         config_dict = copy.deepcopy(self.root_config_dict)
+        #TODO something smarter should be done here
+        if config_dict.get('gan_config') is not None:
+            gan_config = config_dict['gan_config']
+            config_dict['Model']['gan_generator']['gan_config'] = copy.deepcopy(gan_config)
+            config_dict['Model']['gan_discriminator']['gan_config'] = copy.deepcopy(gan_config)
+            config_dict['Trainer']['gan_config'] = copy.deepcopy(gan_config)
+
         for path, value in modify_dict.items():
             self.modify_config_node(config_dict, path, value)
         return config_dict
