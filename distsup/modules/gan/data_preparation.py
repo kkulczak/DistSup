@@ -43,7 +43,7 @@ class GanConcatedWindowsDataManipulation:
 
         def padded_tensor(xs):
             xs = [
-                x if len(x.shape) != 0  else torch.tensor([x])
+                x if len(x.shape) != 0 else torch.tensor([x])
                 for x in xs
             ]
             return torch.stack([

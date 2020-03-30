@@ -1,6 +1,6 @@
 from torch import nn
 
-from distsup.modules.gan.secondary_trainer import GanConfig
+from distsup.modules.gan.data_types import GanConfig
 from distsup.modules.gan.utils import softmax_gumbel_noise
 
 

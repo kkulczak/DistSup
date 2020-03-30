@@ -35,9 +35,9 @@ from distsup import (
 from distsup.configuration import Globals
 from distsup.logger import DefaultTensorLogger
 from distsup.modules.gan.secondary_trainer import (
-    GanConfig,
     SecondaryTrainerGAN,
 )
+from distsup.modules.gan.data_types import GanConfig
 from distsup.trainer import (
     GradientClipper,
     Progress,
@@ -282,14 +282,17 @@ class TrainerForGan(object):
             if Globals.cuda:
                 batch = model.batch_to_device(batch, 'cuda')
 
-            #### HERE GAN GOING!!!
-            self.gan_trainer.iterate_step()
 
             # with summary.Summary(model):
             if 1:
                 loss, stats, tokens = model.minibatch_loss(
                     batch,
+                    train_model=True,
                 )
+
+            #### HERE GAN GOING!!!
+            gan_stats = self.gan_trainer.iterate_step()
+            stats.update(gan_stats)
 
             if self.kill_on_nan:
                 self.check_loss(loss)

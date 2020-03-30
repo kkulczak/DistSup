@@ -1,7 +1,7 @@
 Datasets:
   train:
     class_name: FixedDatasetLoader
-    batch_size: 3
+    batch_size: 32
     dataset:
       class_name: distsup.data.ChunkedDataset
       dataset:
@@ -22,6 +22,7 @@ Datasets:
         image: features
     shuffle: true
     num_workers: 4
+    drop_last: True
   dev:
     class_name: PaddedDatasetLoader
     batch_size: 32
@@ -34,6 +35,7 @@ Datasets:
         image: features
     # drop_fields: [text, alignment_rle, page_side, page]
     num_workers: 4
+    drop_last: True
 
 Model:
   class_name: distsup.models.GAN_representation_learners.GanRepresentationLearner
@@ -59,6 +61,7 @@ Model:
     class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
     gan_config: True
   gan_discriminator:
+    class_name: distsup.modules.gan.discriminator_net.DiscriminatorNet
     gan_config: True
 
 
@@ -84,8 +87,14 @@ gan_config:
     dictionary_size: 70
     max_sentence_length: 37
     repeat: 6
+    gradient_penalty_ratio: 10.0
 # Discriminator part
     dis_steps: 3
+    dis_emb_size: 256
+    dis_hidden_1_size: 256
+    dis_hidden_2_size: 256
+    dis_learning_rate: 0.002
 # Generator part
     gen_steps: 1
     gen_hidden_size: 256
+    gen_learning_rate: 0.001
