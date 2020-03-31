@@ -530,12 +530,14 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         # self.print_ali_num_segments(batch)
         self.pad_features(batch)
         feats = batch['features']
-        bottleneck_cond = self.bottleneck_cond(batch)
-        _, conds, info, encoder_output = self.conditioning(
-            feats,
-            batch.get('features_len'),
-            bottleneck_cond
-        )
+        # bottleneck_cond = self.bottleneck_cond(batch)
+        # _, conds, info, encoder_output = self.conditioning(
+        #     feats,
+        #     batch.get('features_len'),
+        #     bottleneck_cond
+        # )
+        info = None
+        conds = None
         encoder_output = F.one_hot(
             batch['alignment'].cpu().long(),
             num_classes=self.gan_generator.gan_config.dictionary_size
@@ -561,4 +563,9 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
 
         self.log_images(feats, info, inputs, rec_imgs)
 
-        return rec_loss, details, info['indices']
+        return (
+            rec_loss,
+            {},
+            # details,
+            batch['alignment']
+        )
