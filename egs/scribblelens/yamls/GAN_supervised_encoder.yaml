@@ -42,7 +42,7 @@ Model:
   image_height: 32
   encoder:
     class_name: distsup.modules.convolutional.ConvStack1D
-    hid_channels: 68
+    hid_channels: 70
     num_strided: 2
     num_dilated: 2
     num_postdil: 3
@@ -83,10 +83,10 @@ Trainer:
 #  - 0.998
 
 gan_config:
-    concat_window: 5
+    concat_window: 1
     dictionary_size: 70
     max_sentence_length: 37
-    repeat: 6
+    repeat: 1
     gradient_penalty_ratio: 10.0
 # Discriminator part
     dis_steps: 3

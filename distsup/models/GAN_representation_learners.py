@@ -7,7 +7,6 @@ import torch.nn.functional as F
 
 from distsup import (
     utils,
-    scoring,
 )
 from distsup.logger import default_tensor_logger
 from distsup.models import streamtokenizer
@@ -130,7 +129,8 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             )
             config = GanConfig(**gan_generator['gan_config'])
             self.gan_data_manipulator = GanConcatedWindowsDataManipulation(
-                encoder_length_reduction=self.encoder.length_reduction,
+                # encoder_length_reduction=self.encoder.length_reduction,
+                encoder_length_reduction=1,
                 concat_window=config.concat_window,
                 max_sentence_length=101,
                 repeat=1
@@ -489,7 +489,8 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         #     f1_scores = dict(precision=[], recall=[], f1=[])
         #     for batch in zip(alis_gt, alis_es, alis_lens):
         #         batch = [t.detach().cpu().numpy() for t in batch]
-        #         for k, v in scoring.compute_f1_scores(*batch, delta=1).items():
+        #         for k, v in scoring.compute_f1_scores(*batch,
+        #         delta=1).items():
         #             f1_scores[k].extend(v)
         #     for k in ('f1', 'precision', 'recall'):
         #         print(f"f1/{k}: {np.mean(f1_scores[k])}")
@@ -513,7 +514,8 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         #         es = ali_filter(alis_es)
         #
         #
-        #         perplexity_scores = self._perplexity_metrics(es, prefix=prefix)
+        #         perplexity_scores = self._perplexity_metrics(es,
+        #         prefix=prefix)
         #         all_scores.update(perplexity_scores)
         #
         # return all_scores
@@ -534,6 +536,10 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             batch.get('features_len'),
             bottleneck_cond
         )
+        encoder_output = F.one_hot(
+            batch['alignment'].cpu().long(),
+            num_classes=self.gan_generator.gan_config.dictionary_size
+        ).float()
 
         if return_encoder_output:
             return encoder_output.detach()
