@@ -556,15 +556,15 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             res = res.argmax(dim=-1)
             return 0., {'target': target, 'lens': lens}, res
 
-        needs_rec_image = logger.is_currently_logging()
-
-        rec_loss, details, inputs, rec_imgs = self.reconstruction_loss(
-            batch, conds, needs_rec_image=needs_rec_image)
-
-        self.log_images(feats, info, inputs, rec_imgs)
+        # needs_rec_image = logger.is_currently_logging()
+        #
+        # rec_loss, details, inputs, rec_imgs = self.reconstruction_loss(
+        #     batch, conds, needs_rec_image=needs_rec_image)
+        #
+        # self.log_images(feats, info, inputs, rec_imgs)
 
         return (
-            rec_loss,
+            torch.tensor(0., requires_grad=True),
             {},
             # details,
             batch['alignment']
