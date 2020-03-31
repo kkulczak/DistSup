@@ -76,8 +76,8 @@ Trainer:
     class_name: torch.optim.lr_scheduler.ReduceLROnPlateau
     factor: 0.5
     patience: 2
-  output_frequency: 20
-  num_epochs: 30
+  output_frequency: 10
+  num_epochs: 50
   optimizer_name: Adam
 #  polyak_decay:
 #  - 0.998
