@@ -19,6 +19,7 @@ from __future__ import (
     print_function,
 )
 
+import itertools
 import logging
 import time
 from copy import deepcopy
@@ -266,7 +267,13 @@ class TrainerForGan(object):
                           torch.optim.lr_scheduler.ReduceLROnPlateau):
             lr_scheduler.step()
 
-        for batch_ind, batch in enumerate(train_dataset):
+        for batch_ind, (batch, _) in enumerate(
+            zip(
+                train_dataset,
+                # range(2)
+                itertools.count()
+            )
+        ):
             self.current_iteration += 1
             Globals.current_iteration = self.current_iteration
             progress.announce_batch(

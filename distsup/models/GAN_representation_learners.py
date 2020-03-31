@@ -539,7 +539,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         encoder_output = F.one_hot(
             batch['alignment'].cpu().long(),
             num_classes=self.gan_generator.gan_config.dictionary_size
-        ).float()
+        ).float().to(batch['features'].device)
 
         if return_encoder_output:
             return encoder_output.detach()
