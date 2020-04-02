@@ -36,39 +36,25 @@ class GanConcatedWindowsDataManipulation:
         return concat_window_indexes
 
     def extract_alignment_data(self, alignment):
-        encoded = [rleEncode(x) for x in alignment]
-        ranges = [(x[0][:, 0]).squeeze() for x in encoded]
-        values = [x[1] for x in encoded]
-        lens = torch.tensor([len(x) for x in values])
-
-        def padded_tensor(xs):
-            xs = [
-                x if len(x.shape) != 0 else torch.tensor([x])
-                for x in xs
-            ]
-            return torch.stack([
-                torch.cat([
-                    x,
-                    torch.zeros(
-                        self.max_sentence_length - x.shape[0],
-                        dtype=torch.int
-                    )
-                ])
-                for x in xs
-            ])
-
-        train_bnd = padded_tensor(ranges)
-        train_bnd_range = pad(
-            train_bnd[:, 1:] - train_bnd[:, :-1],
-            [0, 1, 0, 0],
+        train_bnd = torch.zeros(
+            (alignment.shape[0], self.max_sentence_length),
+            dtype=torch.long
         )
-        train_bnd_range[train_bnd_range < 0] = 0.
-
-        target = padded_tensor(values)
+        train_bnd_range = train_bnd.clone()
+        target = train_bnd.clone()
+        lens = torch.zeros((alignment.shape[0]), dtype=torch.long)
+        for i, algn in enumerate(alignment):
+            rle, values = rleEncode(algn)
+            _len = values.shape[0]
+            lens[i] = _len
+            train_bnd[i, :_len] = rle[:, 0]
+            train_bnd_range[i, :_len] = rle[:, 1] - rle[:, 0]
+            target[i, :_len] = values
         return train_bnd, train_bnd_range, target, lens
 
     def prepare_gan_batch(self, x, alignment):
-        x = x.squeeze()
+        # USE SAFE SQUEEZE on ERROR
+        # x = x.squeeze()
         batch_size, phrase_length, data_size = x.shape
 
         indexer = self.generate_indexer(phrase_length)
@@ -83,20 +69,22 @@ class GanConcatedWindowsDataManipulation:
         )
 
         train_bnd, train_bnd_range, target, lens = self.extract_alignment_data(
-            alignment)
+            alignment
+        )
 
         random_pick = torch.clamp(
-            (torch.randn(batch_size * self.repeat,
-                         self.max_sentence_length) + 0.5) * 0.2,
+            (torch.randn(
+                batch_size * self.repeat,
+                self.max_sentence_length
+            ) * 0.2 + 0.5),
             min=0.0,
             max=1.0,
         )
 
         sample_frame_ids = (
-            train_bnd.repeat(self.repeat, 1).type(torch.float)
-            + random_pick * train_bnd_range.repeat(self.repeat, 1).type(
-            torch.float)
-        ).round().type(torch.long)
+            train_bnd.repeat(self.repeat, 1).float()
+            + random_pick * train_bnd_range.repeat(self.repeat, 1).float()
+        ).long()
 
         batched_sample_frame = expanded_x.repeat(self.repeat, 1, 1)[
             np.arange(batch_size * self.repeat).reshape([-1, 1]),

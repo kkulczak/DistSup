@@ -554,7 +554,16 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
                 )
             res = self.gan_generator(batched_sample_frame)
             res = res.argmax(dim=-1)
-            return 0., {'target': target, 'lens': lens}, res
+            return (
+                0.,
+                {
+                    'target': target,
+                    'lens': lens,
+                    'encoder_output': encoder_output,
+                    'alignment': batch['alignment'],
+                },
+                res
+            )
 
         # needs_rec_image = logger.is_currently_logging()
         #
