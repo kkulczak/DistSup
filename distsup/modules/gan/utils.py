@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch import (
     autograd,
@@ -71,3 +72,15 @@ def compute_gradient_penalty(
 
     # Return gradient penalty
     return ((gradients_norm - 1) ** 2).mean()
+
+
+def assert_one_hot(x: torch.Tensor):
+    x = x.view(-1, x.shape[-1]).cpu()
+    ones = (x == 1.0).sum()
+    zeros = (x == 0.0).sum()
+    assert np.prod(x.shape) == (zeros + ones).item()
+    assert (x.sum(dim=-1) == 1.0).all()
+
+
+def assert_as_target(x: torch.Tensor, target: torch.Tensor):
+    assert (x.cpu().argmax(dim=-1) == target.cpu()).all()

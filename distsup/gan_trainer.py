@@ -77,6 +77,7 @@ class TrainerForGan(object):
         polyak_decay=0,
         codebook_lr=None,
         gan_config=None,
+        skip_training=False
     ):
         super(TrainerForGan, self).__init__()
 
@@ -114,6 +115,7 @@ class TrainerForGan(object):
 
         self.gan_config = GanConfig(**gan_config)
         self.gan_trainer: Optional[SecondaryTrainerGAN] = None
+        self.skip_training = skip_training
 
 
     def _log_train_batch(self, loss, stats, optimizer):
@@ -270,8 +272,7 @@ class TrainerForGan(object):
         for batch_ind, (batch, _) in enumerate(
             zip(
                 train_dataset,
-                # range(2)
-                itertools.count()
+                range(1) if self.skip_training else itertools.count()
             )
         ):
             self.current_iteration += 1

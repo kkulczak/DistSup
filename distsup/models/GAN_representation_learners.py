@@ -19,6 +19,10 @@ from distsup.modules import (
 from distsup.modules.gan.data_preparation import \
     GanConcatedWindowsDataManipulation
 from distsup.modules.gan.data_types import GanConfig
+from distsup.modules.gan.utils import (
+    assert_one_hot,
+    assert_as_target,
+)
 
 logger = default_tensor_logger.DefaultTensorLogger()
 
@@ -127,13 +131,10 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
                     'encoder_element_size': self.encoder.hid_channels,
                 }
             )
-            config = GanConfig(**gan_generator['gan_config'])
             self.gan_data_manipulator = GanConcatedWindowsDataManipulation(
+                gan_config=GanConfig(**gan_generator['gan_config']),
                 # encoder_length_reduction=self.encoder.length_reduction,
                 encoder_length_reduction=1,
-                concat_window=config.concat_window,
-                max_sentence_length=101,
-                repeat=1
             )
         if gan_discriminator is None:
             self.gan_discriminator = gan_discriminator
@@ -552,6 +553,8 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
                     encoder_output,
                     batch['alignment'].cpu()
                 )
+            assert_one_hot(batched_sample_frame)
+            assert_as_target(batched_sample_frame, target)
             res = self.gan_generator(batched_sample_frame)
             res = res.argmax(dim=-1)
             return (

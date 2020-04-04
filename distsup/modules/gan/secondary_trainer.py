@@ -9,7 +9,11 @@ from distsup.models.GAN_representation_learners import GanRepresentationLearner
 from distsup.modules.gan.data_preparation import \
     GanConcatedWindowsDataManipulation
 from distsup.modules.gan.data_types import GanConfig
-from distsup.modules.gan.utils import compute_gradient_penalty
+from distsup.modules.gan.utils import (
+    compute_gradient_penalty,
+    assert_one_hot,
+    assert_as_target,
+)
 
 
 class SecondaryTrainerGAN:
@@ -27,10 +31,8 @@ class SecondaryTrainerGAN:
         self.dataloader_iter = iter(self.vanilla_dataloader)
         self.config = config
         self.data_manipulator = GanConcatedWindowsDataManipulation(
+            gan_config=config,
             encoder_length_reduction=self.model.encoder.length_reduction,
-            concat_window=config.concat_window,
-            max_sentence_length=config.max_sentence_length,
-            repeat=config.repeat
         )
 
         self.optimizer_gen = optim.Adam(
@@ -67,7 +69,7 @@ class SecondaryTrainerGAN:
         ).float()
         if Globals.cuda:
             batch = batch.to('cuda')
-        return batch
+        return batch, target
 
     def sample_batch_from_encoder(self):
         batch = self.sample_vanilla_batch()
@@ -96,8 +98,13 @@ class SecondaryTrainerGAN:
     def iterate_step(self):
         stats = {}
         for i in range(self.config.dis_steps):
-            real_sample = self.sample_real_batch()
+            real_sample, real_target = self.sample_real_batch()
+            assert_one_hot(real_sample)
+            assert_as_target(real_sample, real_target)
+
             batched_sample_frame, target, lens = self.sample_gen_batch()
+            assert_one_hot(batched_sample_frame)
+            assert_as_target(batched_sample_frame, target)
 
             self.model.gan_discriminator.zero_grad()
 
@@ -128,6 +135,8 @@ class SecondaryTrainerGAN:
 
         for i in range(self.config.gen_steps):
             batched_sample_frame, target, lens = self.sample_gen_batch()
+            assert_one_hot(batched_sample_frame)
+            assert_as_target(batched_sample_frame, target)
 
             self.model.gan_discriminator.zero_grad()
 

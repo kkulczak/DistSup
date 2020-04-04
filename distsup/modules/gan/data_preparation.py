@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from torch.nn.functional import pad
 
+from distsup.modules.gan.data_types import GanConfig
 from distsup.utils import (
     rleEncode,
 )
@@ -13,16 +14,17 @@ from distsup.utils import (
 class GanConcatedWindowsDataManipulation:
     def __init__(
         self,
+        gan_config: GanConfig,
         encoder_length_reduction,
-        concat_window=5,
-        max_sentence_length=37,
-        repeat=6,
+        # concat_window=5,
+        # max_sentence_length=37,
+        # repeat=6,
     ):
         self.encoder_length_reduction = encoder_length_reduction
-        self.windows_size = concat_window
-        self.max_sentence_length = max_sentence_length
-        self.repeat = repeat
-        pass
+        self.windows_size = gan_config.concat_window
+        self.max_sentence_length = gan_config.max_sentence_length
+        self.repeat = gan_config.repeat
+        self.dictionary_size = gan_config.dictionary_size
 
     def generate_indexer(self, phrase_length) -> torch.tensor:
         concat_window_indexes = (
@@ -94,6 +96,9 @@ class GanConcatedWindowsDataManipulation:
         mask = (
             torch.arange(self.max_sentence_length)[None, :] < lens[:, None]
         ).repeat(self.repeat, 1)
-        batched_sample_frame[~mask] = 0.0
+        batched_sample_frame[~mask] = torch.eye(
+            data_size,
+            device=batched_sample_frame.device
+        )[0]
 
         return batched_sample_frame, target, lens
