@@ -455,9 +455,8 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
     ):
 
         self.pad_features(batch)
-        feats = batch['features']
         encoder_output = F.one_hot(
-            feats.cpu().long(),
+            batch['alignment'].cpu().long(),
             num_classes=self.gan_generator.gan_config.dictionary_size
         ).float().to(batch['features'].device)
 
