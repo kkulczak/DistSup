@@ -1,6 +1,7 @@
+import logging
+
 import numpy as np
 import torch
-from torch.nn.functional import pad
 
 from distsup.modules.gan.data_types import GanConfig
 from distsup.utils import (
@@ -26,6 +27,8 @@ class GanConcatedWindowsDataManipulation:
         self.repeat = gan_config.repeat
         self.dictionary_size = gan_config.dictionary_size
 
+
+
     def generate_indexer(self, phrase_length) -> torch.tensor:
         concat_window_indexes = (
             (np.arange(self.windows_size) - self.windows_size // 2)[None, :]
@@ -48,6 +51,14 @@ class GanConcatedWindowsDataManipulation:
         for i, algn in enumerate(alignment):
             rle, values = rleEncode(algn)
             _len = values.shape[0]
+            if _len > self.max_sentence_length:
+                logging.warning(
+                    f'rle len [{_len}] exceeded max_sentence_length '
+                    f'[{self.max_sentence_length}]'
+                )
+                _len = self.max_sentence_length
+                rle = rle[:_len]
+                values = values[:_len]
             lens[i] = _len
             train_bnd[i, :_len] = rle[:, 0]
             train_bnd_range[i, :_len] = rle[:, 1] - rle[:, 0]

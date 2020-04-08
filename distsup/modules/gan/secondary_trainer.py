@@ -1,8 +1,8 @@
 from copy import deepcopy
 
+from torch import optim
 import torch.nn.functional as F
 import torch.utils.data
-from torch import optim
 
 from distsup.configuration import Globals
 from distsup.models.GAN_representation_learners import GanRepresentationLearner
@@ -10,9 +10,9 @@ from distsup.modules.gan.data_preparation import \
     GanConcatedWindowsDataManipulation
 from distsup.modules.gan.data_types import GanConfig
 from distsup.modules.gan.utils import (
-    compute_gradient_penalty,
-    assert_one_hot,
     assert_as_target,
+    assert_one_hot,
+    compute_gradient_penalty,
 )
 
 
@@ -129,9 +129,9 @@ class SecondaryTrainerGAN:
             dis_loss.backward()
             self.optimizer_dis.step()
 
-            stats['gradient_penalty'] = gradient_penalty.item()
-            stats['real_score'] = real_score.item()
-            stats['dis_loss'] = dis_loss.item()
+            stats['metrics/gradient_penalty'] = gradient_penalty.item()
+            stats['scores/real'] = real_score.item()
+            stats['losses/dis'] = dis_loss.item()
 
         for i in range(self.config.gen_steps):
             batched_sample_frame, target, lens = self.sample_gen_batch()
@@ -151,7 +151,18 @@ class SecondaryTrainerGAN:
             gen_loss.backward()
             self.optimizer_gen.step()
 
-            stats['fake_score'] = fake_score.item()
-            stats['gen_loss'] = gen_loss.item()
+            stats['scores/fake'] = fake_score.item()
+            stats['losses/gen'] = gen_loss.item()
+            stats['scores/diff_abs'] = (
+                fake_score.item() - real_score.item()
+            )
+            stats['gp_impact'] = (
+                gradient_penalty.item() / (
+                    dis_loss.item()
+                ) * self.config.gradient_penalty_ratio
+            )
+            stats['accuracy/train_batch'] = (
+                    target.long() == fake_sample.argmax(-1).long()
+            ).float().mean().item()
 
         return {f'GAN_{k}': v for k, v in stats.items()}

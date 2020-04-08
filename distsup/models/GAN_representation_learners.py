@@ -20,8 +20,8 @@ from distsup.modules.gan.data_preparation import \
     GanConcatedWindowsDataManipulation
 from distsup.modules.gan.data_types import GanConfig
 from distsup.modules.gan.utils import (
-    assert_one_hot,
     assert_as_target,
+    assert_one_hot,
 )
 
 logger = default_tensor_logger.DefaultTensorLogger()
@@ -392,10 +392,13 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
 
     def evaluate(self, batches):
         tot_examples = 0.
+        tot_correct_letters = 0.
+        tot_all_letters = 0.
+        tot_correct_all_letters = 0.
+
         # tot_loss = 0.
         # tot_detached_probesloss = 0.
         # tot_backprop_probesloss = 0.
-        tot_errs = 0.
         #
         # alis_es = []
         # alis_gt = []
@@ -409,27 +412,38 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
                 first_batch = copy.deepcopy(batch)
 
             num_examples = batch['features'].shape[0]
-            loss, stats, tokens = self.minibatch_loss_and_tokens(
+            loss, stats, torch_tokens = self.minibatch_loss_and_tokens(
                 batch,
                 train_model=False
             )
-            literal_errors = [
-                (target[:_len] != _tokens[:_len]).sum()
+            target: np.ndarray = stats['target'].cpu().int().numpy()
+            lens: np.ndarray = stats['lens'].cpu().numpy()
+            tokens: np.ndarray = torch_tokens.cpu().int().numpy()
+            literal_accuracy = [
+                (target[:_len] == _tokens[:_len]).sum()
                 for _len, target, _tokens in zip(
-                    stats['lens'].cpu(),
-                    stats['target'].cpu().int(),
-                    tokens.cpu().int()
+                    lens,
+                    target,
+                    tokens
                 )
             ]
-            tot_errs += sum(literal_errors).item()
-            tot_examples += stats['lens'].sum().item()
+            tot_correct_letters += np.array(literal_accuracy).sum()
+            tot_examples += lens.sum()
+
+            tot_correct_all_letters += (tokens == target).sum()
+            tot_all_letters += tokens.size
         print('#' * 40)
-        print(stats['target'][0][:stats['lens'][0] + 1])
-        print(tokens[0][:stats['lens'][0] + 1])
-        print('#' * 40)
+        for i in range(3):
+            print(f'target {i}:', stats['target'][i])
+            print(f'value  {i}:', torch.from_numpy(tokens[i]))
+            print('#' * 40)
 
         return {
-            'literal_errs': tot_errs / tot_examples
+            'accuracy/eval': tot_correct_letters / tot_examples,
+            'accuracy/eval_with_paddings': (
+                tot_correct_all_letters / tot_all_letters
+            ),
+
         }
 
         #     if tokens is not None:
@@ -578,6 +592,6 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         return (
             torch.tensor(0., requires_grad=True),
             {},
-            # details,
+                # details,
             batch['alignment']
         )
