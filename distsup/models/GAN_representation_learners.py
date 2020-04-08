@@ -463,29 +463,31 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         if return_encoder_output:
             return encoder_output.detach()
 
-        if not train_model:
-            batched_sample_frame, target, lens = \
-                self.gan_data_manipulator.prepare_gan_batch(
-                    encoder_output,
-                    batch['alignment'].cpu()
-                )
-            assert_one_hot(batched_sample_frame)
-            assert_as_target(batched_sample_frame, target)
-            res = self.gan_generator(batched_sample_frame)
-            res = res.argmax(dim=-1)
+        if train_model:
             return (
-                0.,
-                {
-                    'target': target,
-                    'lens': lens,
-                    'encoder_output': encoder_output,
-                    'alignment': batch['alignment'],
-                },
-                res
+                torch.tensor(0., requires_grad=True),
+                {},
+                batch['alignment']
             )
 
+        batched_sample_frame, target, lens = \
+            self.gan_data_manipulator.prepare_gan_batch(
+                encoder_output,
+                batch['alignment'].cpu()
+            )
+        assert_one_hot(batched_sample_frame)
+        assert_as_target(batched_sample_frame, target)
+        res = self.gan_generator(batched_sample_frame)
+        res = res.argmax(dim=-1)
         return (
-            torch.tensor(0., requires_grad=True),
-            {},
-            batch['alignment']
+            0.,
+            {
+                'target': target,
+                'lens': lens,
+                'encoder_output': encoder_output,
+                'alignment': batch['alignment'],
+            },
+            res
         )
+
+
