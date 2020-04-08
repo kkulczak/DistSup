@@ -1,5 +1,4 @@
 import copy
-import os
 
 import numpy as np
 import torch
@@ -230,7 +229,6 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         except AssertionError as e:
             print(e)
             breakpoint()
-        # torch.save(enc, 'enc_out.pt')
         b, t, h, c = enc.size()
         enc = enc.contiguous().view(b, t, 1, h * c)
         quant, kl, info = self.bottleneck(enc, bottleneck_cond, enc_len=enc_len)
@@ -408,15 +406,6 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         tot_all_letters = 0.
         tot_correct_all_letters = 0.
 
-        # tot_loss = 0.
-        # tot_detached_probesloss = 0.
-        # tot_backprop_probesloss = 0.
-        #
-        # alis_es = []
-        # alis_gt = []
-        # alis_lens = []
-        # total_stats = {}
-
         first_batch = None
 
         for batch in batches:
@@ -458,95 +447,6 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
 
         }
 
-        #     if tokens is not None:
-        #         # Tokens should be in layout B x W x 1 x 1
-        #         tokens = utils.safe_squeeze(tokens, dim=3)
-        #         tokens = utils.safe_squeeze(tokens, dim=2)
-        #
-        #         feat_len = batch['features_len']
-        #         alis_lens.append(feat_len)
-        #
-        #         # the tokens should match the rate of the alignment
-        #         ali_es = self.align_tokens_to_features(batch, tokens)
-        #         assert (ali_es.shape[0] == batch['features'].shape[0])
-        #         assert (ali_es.shape[1] == batch['features'].shape[1])
-        #         alis_es.append(ali_es[:, :])
-        #         if 'alignment' in batch:
-        #             ali_gt = batch['alignment']
-        #             ali_len = batch['alignment_len']
-        #
-        #             assert ((ali_len == feat_len).all())
-        #             alis_gt.append(ali_gt)
-        #
-        #     tot_examples += num_examples
-        #     tot_loss += loss * num_examples
-        #     tot_errs += stats.get('err', np.nan) * num_examples
-        #
-        #     tot_detached_probesloss += detached_loss * num_examples
-        #     tot_backprop_probesloss += backprop_loss * num_examples
-        #     for k, v in stats.items():
-        #         if k == 'segmental_values':
-        #             if logger.is_currently_logging():
-        #                 import matplotlib.pyplot as plt
-        #                 f = plt.figure(dpi=300)
-        #                 plt.plot(v.data.cpu().numpy(), 'r.-')
-        #                 f.set_tight_layout(True)
-        #                 logger.log_mpl_figure(f'segmentation_values', f)
-        #         elif utils.is_scalar(v):
-        #             if k not in total_stats:
-        #                 total_stats[k] = v * num_examples
-        #             else:
-        #                 total_stats[k] += v * num_examples
-        # # loss is special, as we use it e.g. for learn rate control
-        # # add all signals that we train agains, but remove the passive ones
-        # all_scores = {
-        #     'loss': (tot_loss + tot_backprop_probesloss) / tot_examples,
-        #     'probes_backprop_loss': tot_backprop_probesloss / tot_examples,
-        #     'probes_detached_loss': tot_detached_probesloss / tot_examples,
-        #     'err': tot_errs / tot_examples,
-        #     'probes_loss': (tot_detached_probesloss + tot_backprop_probesloss
-        #                     ) / tot_examples
-        # }
-        #
-        # for k, v in total_stats.items():
-        #     all_scores[k] = v / tot_examples
-        #
-        # if (len(alis_es) > 0) and (len(alis_gt) > 0):
-        #     # If we have gathered any alignments
-        #     f1_scores = dict(precision=[], recall=[], f1=[])
-        #     for batch in zip(alis_gt, alis_es, alis_lens):
-        #         batch = [t.detach().cpu().numpy() for t in batch]
-        #         for k, v in scoring.compute_f1_scores(*batch,
-        #         delta=1).items():
-        #             f1_scores[k].extend(v)
-        #     for k in ('f1', 'precision', 'recall'):
-        #         print(f"f1/{k}: {np.mean(f1_scores[k])}")
-        #         logger.log_scalar(f'f1/{k}', np.mean(f1_scores[k]))
-        #
-        #     alis_es = self._unpad_and_concat(alis_es, alis_lens)
-        #     alis_gt = self._unpad_and_concat(alis_gt, alis_lens) if len(
-        #         alis_gt) else None
-        #
-        #     scores_to_compute = [('', lambda x: x)]
-        #     if alis_gt is not None and self.pad_symbol is not None:
-        #         not_pad = (alis_gt != self.pad_symbol)
-        #         scores_to_compute.append(('nonpad_', lambda x: x[not_pad]))
-        #
-        #     if alis_gt is not None and alis_es.min() < 0:
-        #         not_pad2 = (alis_es != -1)
-        #         scores_to_compute.append(
-        #             ('validtokens_', lambda x: x[not_pad2]))
-        #
-        #     for prefix, ali_filter in scores_to_compute:
-        #         es = ali_filter(alis_es)
-        #
-        #
-        #         perplexity_scores = self._perplexity_metrics(es,
-        #         prefix=prefix)
-        #         all_scores.update(perplexity_scores)
-        #
-        # return all_scores
-
     def minibatch_loss_and_tokens(
         self,
         batch,
@@ -554,19 +454,10 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         return_encoder_output=False,
     ):
 
-        # self.print_ali_num_segments(batch)
         self.pad_features(batch)
         feats = batch['features']
-        # bottleneck_cond = self.bottleneck_cond(batch)
-        # _, conds, info, encoder_output = self.conditioning(
-        #     feats,
-        #     batch.get('features_len'),
-        #     bottleneck_cond
-        # )
-        info = None
-        conds = None
         encoder_output = F.one_hot(
-            batch['alignment'].cpu().long(),
+            feats.cpu().long(),
             num_classes=self.gan_generator.gan_config.dictionary_size
         ).float().to(batch['features'].device)
 
@@ -594,16 +485,8 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
                 res
             )
 
-        # needs_rec_image = logger.is_currently_logging()
-        #
-        # rec_loss, details, inputs, rec_imgs = self.reconstruction_loss(
-        #     batch, conds, needs_rec_image=needs_rec_image)
-        #
-        # self.log_images(feats, info, inputs, rec_imgs)
-
         return (
             torch.tensor(0., requires_grad=True),
             {},
-                # details,
             batch['alignment']
         )

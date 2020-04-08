@@ -107,7 +107,6 @@ class SecondaryTrainerGAN:
             assert_one_hot(batched_sample_frame)
             assert_as_target(batched_sample_frame, target)
 
-
             fake_sample = self.model.gan_generator(batched_sample_frame)
 
             fake_pred = self.model.gan_discriminator(fake_sample)
@@ -140,7 +139,6 @@ class SecondaryTrainerGAN:
             assert_one_hot(batched_sample_frame)
             assert_as_target(batched_sample_frame, target)
 
-
             fake_sample = self.model.gan_generator(batched_sample_frame)
 
             fake_pred = self.model.gan_discriminator(fake_sample)
@@ -158,11 +156,11 @@ class SecondaryTrainerGAN:
             )
             stats['gp_impact'] = (
                 gradient_penalty.item() / (
-                    dis_loss.item()
-                ) * self.config.gradient_penalty_ratio
+                dis_loss.item()
+            ) * self.config.gradient_penalty_ratio
             )
             stats['accuracy/train_batch'] = (
-                    target.long() == fake_sample.argmax(-1).long()
+                target.long() == fake_sample.argmax(-1).long()
             ).float().mean().item()
 
         return {f'GAN_{k}': v for k, v in stats.items()}
