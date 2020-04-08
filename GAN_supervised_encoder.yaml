@@ -33,7 +33,7 @@ Datasets:
       vocabulary: egs/scribblelens/tasman.alphabet.plus.space.mode5.json
     rename_dict:
         image: features
-    # drop_fields: [text, alignment_rle, page_side, page]
+    drop_fields: [text, alignment_rle, page_side, page]
     num_workers: 4
     drop_last: True
 
@@ -46,18 +46,10 @@ Model:
     num_strided: 2
     num_dilated: 2
     num_postdil: 3
+# Tą flagą zamieniam ConvStack1D w identyczność nie tracąc kompatybilności wstecznej
     identity: True
   reconstructor:
     class_name: distsup.modules.reconstructors.NullReconstructor
-#  aux_heads:
-#    enc_sup:
-#      layer: encoder
-#      target: alignment
-#      predictor:
-#        class_name: distsup.modules.predictors.FramewisePredictor
-#        aggreg: 1
-#        use_two_layer_predictor: False
-#      bp_to_main: True
   gan_generator:
     class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
     gan_config: True
@@ -70,8 +62,6 @@ Trainer:
   class_name: distsup.gan_trainer.TrainerForGan
   checkpointer:
     every_n_hours: 4
-#  gradient_clipping:
-#    clip_norm: 10.0
   learning_rate: 0.001
   learning_rate_scheduler:
     class_name: torch.optim.lr_scheduler.ReduceLROnPlateau
@@ -80,14 +70,25 @@ Trainer:
   output_frequency: 20
   num_epochs: 10
   optimizer_name: Adam
-#  polyak_decay:
-#  - 0.998
 
+
+#to będzie wstrzyknięte do generatora, dyscriminatora oraz Trenera jako Klasa GanConfig
+# distsup.modules.gan.data_types.GanConfig
+# W ten sposób mogę współdzielić ustawienia między klasami.
+# Jest to brzydki hack :(
 gan_config:
+# Ustawienie na 1 wyłącza funkcjonalnosć. Wzięte od Chińczyków
   concat_window: 1
-  dictionary_size: 7
-  max_sentence_length: 11 #75
   repeat: 1
+# Uproszczenie zadania
+# Zmniejszyłem do 7 dostępne literki
+# W ScribleLensdataset biorę alignment mod 7 [egs/scribblelens/data.py:733]
+# Trzeba zmienić
+  dictionary_size: 7
+# Tutaj definiujemy długość wyjścia z encodera
+# Jeżeli alignment zawiera więcej literek, to po prostu przycinam tą ilość
+  max_sentence_length: 11
+# waga dla gp_penalty Chińskiego GANa
   gradient_penalty_ratio: 10.0
   # Discriminator part
   dis_steps: 3
