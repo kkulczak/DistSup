@@ -41,7 +41,7 @@ Model:
   image_height: 32
   encoder:
     class_name: distsup.modules.convolutional.ConvStack1D
-    hid_channels: 7
+    hid_channels: 70
     num_strided: 2
     num_dilated: 2
     num_postdil: 3
