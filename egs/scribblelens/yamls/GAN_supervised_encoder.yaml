@@ -1,7 +1,7 @@
 Datasets:
   train:
     class_name: FixedDatasetLoader
-    batch_size: 32
+    batch_size: 29
     dataset:
       class_name: distsup.data.ChunkedDataset
       dataset:
@@ -19,7 +19,7 @@ Datasets:
         page
       ]
     rename_dict:
-        image: features
+      image: features
     shuffle: true
     num_workers: 4
     drop_last: True
@@ -42,10 +42,11 @@ Model:
   image_height: 32
   encoder:
     class_name: distsup.modules.convolutional.ConvStack1D
-    hid_channels: 70
+    hid_channels: 7
     num_strided: 2
     num_dilated: 2
     num_postdil: 3
+    identity: True
   reconstructor:
     class_name: distsup.modules.reconstructors.NullReconstructor
 #  aux_heads:
@@ -77,24 +78,24 @@ Trainer:
     factor: 0.5
     patience: 2
   output_frequency: 20
-  num_epochs: 80
+  num_epochs: 10
   optimizer_name: Adam
 #  polyak_decay:
 #  - 0.998
 
 gan_config:
-    concat_window: 1
-    dictionary_size: 70
-    max_sentence_length: 37
-    repeat: 1
-    gradient_penalty_ratio: 10.0
-# Discriminator part
-    dis_steps: 3
-    dis_emb_size: 256
-    dis_hidden_1_size: 256
-    dis_hidden_2_size: 256
-    dis_learning_rate: 0.002
-# Generator part
-    gen_steps: 1
-    gen_hidden_size: 256
-    gen_learning_rate: 0.001
+  concat_window: 1
+  dictionary_size: 7
+  max_sentence_length: 11 #75
+  repeat: 1
+  gradient_penalty_ratio: 10.0
+  # Discriminator part
+  dis_steps: 3
+  dis_emb_size: 41
+  dis_hidden_1_size: 37
+  dis_hidden_2_size: 31
+  dis_learning_rate: 0.002
+  # Generator part
+  gen_steps: 1
+  gen_hidden_size: 43
+  gen_learning_rate: 0.001

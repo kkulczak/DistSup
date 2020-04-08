@@ -98,6 +98,7 @@ class SecondaryTrainerGAN:
     def iterate_step(self):
         stats = {}
         for i in range(self.config.dis_steps):
+            self.model.gan_discriminator.zero_grad()
             real_sample, real_target = self.sample_real_batch()
             assert_one_hot(real_sample)
             assert_as_target(real_sample, real_target)
@@ -106,7 +107,6 @@ class SecondaryTrainerGAN:
             assert_one_hot(batched_sample_frame)
             assert_as_target(batched_sample_frame, target)
 
-            self.model.gan_discriminator.zero_grad()
 
             fake_sample = self.model.gan_generator(batched_sample_frame)
 
@@ -134,17 +134,17 @@ class SecondaryTrainerGAN:
             stats['losses/dis'] = dis_loss.item()
 
         for i in range(self.config.gen_steps):
+            # self.model.gan_discriminator.zero_grad()
+            self.model.gan_generator.zero_grad()
             batched_sample_frame, target, lens = self.sample_gen_batch()
             assert_one_hot(batched_sample_frame)
             assert_as_target(batched_sample_frame, target)
 
-            self.model.gan_discriminator.zero_grad()
 
             fake_sample = self.model.gan_generator(batched_sample_frame)
 
             fake_pred = self.model.gan_discriminator(fake_sample)
 
-            self.model.gan_generator.zero_grad()
 
             fake_score = fake_pred.mean()
             gen_loss = - fake_score

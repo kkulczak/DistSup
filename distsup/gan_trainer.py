@@ -196,6 +196,7 @@ class TrainerForGan(object):
             config=self.gan_config
         )
 
+        eval_results = self.evaluate(model, eval_datasets, save_dir)
         for epoch in range(start_epoch, self.num_epochs + 1):
             Globals.epoch = epoch
             self.iterate_epoch(

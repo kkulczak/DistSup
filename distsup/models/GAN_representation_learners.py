@@ -1,4 +1,5 @@
 import copy
+import os
 
 import numpy as np
 import torch
@@ -142,6 +143,17 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             self.gan_discriminator = utils.construct_from_kwargs(
                 gan_discriminator
             )
+        ### MANUAL LOADING CHEKPOINTS
+        #### Loading checkpoints
+        # data_path = 'phrases_reconstruction_GAN/data/7letters_id/epoch_'
+        # epoch_num_load = '100'
+        # gen_path = f'{data_path}{epoch_num_load}_generator.pt'
+        # dis_path = f'{data_path}{epoch_num_load}_discriminator.pt'
+        # gen_state_dict = torch.load(gen_path)
+        # self.gan_generator.load_state_dict(gen_state_dict)
+        # dis_state_dict = torch.load(dis_path)
+        # self.gan_discriminator.load_state_dict(dis_state_dict)
+        # ENd
 
         rec_params = {
             'image_height': image_height,
