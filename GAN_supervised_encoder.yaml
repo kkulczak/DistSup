@@ -33,7 +33,6 @@ Datasets:
       vocabulary: egs/scribblelens/tasman.alphabet.plus.space.mode5.json
     rename_dict:
         image: features
-    drop_fields: [text, alignment_rle, page_side, page]
     num_workers: 4
     drop_last: True
 
