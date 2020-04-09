@@ -425,8 +425,8 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             print('#' * 40)
 
         return {
-            'accuracy/eval': tot_correct_letters / tot_examples,
-            'accuracy/eval_with_paddings': (
+            'gan_accuracy/letters': tot_correct_letters / tot_examples,
+            'gan_accuracy/letters_including_ending_zeros': (
                 tot_correct_all_letters / tot_all_letters
             ),
 
@@ -464,7 +464,8 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         batched_sample_frame, target, lens = \
             self.gan_data_manipulator.prepare_gan_batch(
                 encoder_output,
-                batch['alignment'].cpu()
+                batch['alignment'].cpu(),
+                length=self.gan_generator.gan_config.eval_sentence_length
             )
         res = self.gan_generator(batched_sample_frame)
         res = res.argmax(dim=-1)

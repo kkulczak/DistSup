@@ -6,6 +6,7 @@ class GanConfig:
     concat_window: int
     dictionary_size: int
     max_sentence_length: int
+    eval_sentence_length: int
     repeat: int
     gradient_penalty_ratio: float
     # Discriminator

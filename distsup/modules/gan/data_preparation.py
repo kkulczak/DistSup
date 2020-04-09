@@ -37,9 +37,11 @@ class GanConcatedWindowsDataManipulation:
         ] = phrase_length - 1
         return concat_window_indexes
 
-    def extract_alignment_data(self, alignment):
+    def extract_alignment_data(self, alignment, length=None):
+        if length is None:
+            length=self.max_sentence_length
         train_bnd = torch.zeros(
-            (alignment.shape[0], self.max_sentence_length),
+            (alignment.shape[0], length),
             dtype=torch.long
         )
         train_bnd_range = train_bnd.clone()
@@ -48,12 +50,12 @@ class GanConcatedWindowsDataManipulation:
         for i, algn in enumerate(alignment):
             rle, values = rleEncode(algn)
             _len = values.shape[0]
-            if _len > self.max_sentence_length:
+            if _len > length:
                 logging.warning(
                     f'rle len [{_len}] exceeded max_sentence_length '
-                    f'[{self.max_sentence_length}]'
+                    f'[{length}]'
                 )
-                _len = self.max_sentence_length
+                _len = length
                 rle = rle[:_len]
                 values = values[:_len]
             lens[i] = _len
@@ -62,7 +64,9 @@ class GanConcatedWindowsDataManipulation:
             target[i, :_len] = values
         return train_bnd, train_bnd_range, target, lens
 
-    def prepare_gan_batch(self, x, alignment):
+    def prepare_gan_batch(self, x, alignment, length=None):
+        if length is None:
+            length = self.max_sentence_length
         x = safe_squeeze(x, dim=2)
         batch_size, phrase_length, data_size = x.shape
 
@@ -78,13 +82,14 @@ class GanConcatedWindowsDataManipulation:
         )
 
         train_bnd, train_bnd_range, target, lens = self.extract_alignment_data(
-            alignment
+            alignment,
+            length=length
         )
 
         random_pick = torch.clamp(
             (torch.randn(
                 batch_size * self.repeat,
-                self.max_sentence_length
+                length
             ) * 0.2 + 0.5),
             min=0.0,
             max=1.0,
@@ -101,7 +106,7 @@ class GanConcatedWindowsDataManipulation:
         ]
 
         mask = (
-            torch.arange(self.max_sentence_length)[None, :] < lens[:, None]
+            torch.arange(length)[None, :] < lens[:, None]
         ).repeat(self.repeat, 1)
         batched_sample_frame[~mask] = torch.eye(
             data_size,

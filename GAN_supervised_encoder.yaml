@@ -96,7 +96,8 @@ gan_config:
   dictionary_size: 70
 # Tutaj definiujemy długość wyjścia z encodera
 # Jeżeli alignment zawiera więcej literek, to po prostu przycinam tą ilość
-  max_sentence_length: 64
+  max_sentence_length: 32
+  eval_sentence_length: 64
 # waga dla gp_penalty Chińskiego GANa
   gradient_penalty_ratio: 10.0
   # Discriminator part
