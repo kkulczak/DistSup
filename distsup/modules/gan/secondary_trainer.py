@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 from torch import optim
 import torch.nn.functional as F
 import torch.utils.data
@@ -27,7 +25,8 @@ class SecondaryTrainerGAN:
     ):
 
         self.model = model
-        self.vanilla_dataloader = deepcopy(train_dataloader)
+        # self.vanilla_dataloader = deepcopy(train_dataloader)
+        self.vanilla_dataloader = train_dataloader
         self.dataloader_iter = iter(self.vanilla_dataloader)
         self.config = config
         self.data_manipulator = GanConcatedWindowsDataManipulation(
@@ -128,12 +127,11 @@ class SecondaryTrainerGAN:
             dis_loss.backward()
             self.optimizer_dis.step()
 
-            stats['metrics/gradient_penalty'] = gradient_penalty.item()
-            stats['scores/real'] = real_score.item()
-            stats['losses/dis'] = dis_loss.item()
+            stats['gan_metrics/gradient_penalty'] = gradient_penalty.item()
+            stats['gan_scores/real'] = real_score.item()
+            stats['gan_losses/dis'] = dis_loss.item()
 
         for i in range(self.config.gen_steps):
-            # self.model.gan_discriminator.zero_grad()
             self.model.gan_generator.zero_grad()
             batched_sample_frame, target, lens = self.sample_gen_batch()
             assert_one_hot(batched_sample_frame)
@@ -143,15 +141,14 @@ class SecondaryTrainerGAN:
 
             fake_pred = self.model.gan_discriminator(fake_sample)
 
-
             fake_score = fake_pred.mean()
             gen_loss = - fake_score
             gen_loss.backward()
             self.optimizer_gen.step()
 
-            stats['scores/fake'] = fake_score.item()
-            stats['losses/gen'] = gen_loss.item()
-            stats['scores/diff_abs'] = (
+            stats['gan_scores/fake'] = fake_score.item()
+            stats['gan_losses/gen'] = gen_loss.item()
+            stats['gan_scores/diff_abs'] = (
                 fake_score.item() - real_score.item()
             )
             stats['gp_impact'] = (
@@ -159,8 +156,17 @@ class SecondaryTrainerGAN:
                 dis_loss.item()
             ) * self.config.gradient_penalty_ratio
             )
-            stats['accuracy/train_batch'] = (
-                target.long() == fake_sample.argmax(-1).long()
-            ).float().mean().item()
 
-        return {f'GAN_{k}': v for k, v in stats.items()}
+            mask = (
+                torch.arange(
+                    self.config.max_sentence_length,
+                    device=target.device
+                )[None, :] < lens[:, None]
+            )
+            corrects = (target.long() == fake_sample.argmax(-1).long()).float()
+            stats['gan_accuracy/letters'] = corrects[mask].mean().item()
+            stats[
+                'gan_accuracy/letters_including_ending_zeros'
+            ] = corrects.mean().item()
+
+        return stats

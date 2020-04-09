@@ -28,7 +28,7 @@ def softmax_gumbel_noise(
 
 
 def compute_gradient_penalty(
-    discriminator,
+    discriminator: torch.nn.Module,
     real_data: torch.tensor,
     generated_data: torch.tensor
 ):

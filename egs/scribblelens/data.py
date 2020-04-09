@@ -728,10 +728,6 @@ class ScribbleLensDataset(torch.utils.data.Dataset):
                       f"image len: {new_item['image'].size(0)} "
                       f"alignment len: {new_item['alignment'].size(0)}")
                 raise Exception("Bad alignment length")
-            # TODO Manual change to dictionary_size
-            # This makes the task easier
-            # new_item['alignment'] %= 7
-
         return new_item
 
 

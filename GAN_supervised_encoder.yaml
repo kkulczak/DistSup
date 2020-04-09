@@ -1,7 +1,7 @@
 Datasets:
   train:
     class_name: FixedDatasetLoader
-    batch_size: 29
+    batch_size: 32
     dataset:
       class_name: distsup.data.ChunkedDataset
       dataset:
@@ -19,7 +19,7 @@ Datasets:
         page
       ]
     rename_dict:
-      image: features
+        image: features
     shuffle: true
     num_workers: 4
     drop_last: True
@@ -69,6 +69,7 @@ Trainer:
   output_frequency: 20
   num_epochs: 20
   optimizer_name: Adam
+  skip_training: False
 
 
 #to będzie wstrzyknięte do generatora, dyscriminatora oraz Trenera jako Klasa GanConfig
@@ -86,16 +87,17 @@ gan_config:
   dictionary_size: 70
 # Tutaj definiujemy długość wyjścia z encodera
 # Jeżeli alignment zawiera więcej literek, to po prostu przycinam tą ilość
-  max_sentence_length: 25
+  max_sentence_length: 32
+  eval_sentence_length: 64
 # waga dla gp_penalty Chińskiego GANa
   gradient_penalty_ratio: 10.0
   # Discriminator part
   dis_steps: 3
-  dis_emb_size: 41
-  dis_hidden_1_size: 37
-  dis_hidden_2_size: 31
+  dis_emb_size: 256
+  dis_hidden_1_size: 256
+  dis_hidden_2_size: 256
   dis_learning_rate: 0.002
   # Generator part
   gen_steps: 1
-  gen_hidden_size: 43
+  gen_hidden_size: 512
   gen_learning_rate: 0.001
