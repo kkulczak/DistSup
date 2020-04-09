@@ -70,18 +70,21 @@ class ConvStack1D(nn.Module):
 
     Input and output are N x W x H x C
     """
-    def __init__(self,
-                 in_channels,
-                 image_height=1,
-                 hid_channels=64,
-                 num_preproc=0,  # 3 Convs with no stride no dilation
-                 num_strided=0,  # 2 * stride Strided convs
-                 strides=(2,),
-                 kernels=None,
-                 num_dilated=0,  # 3 Convs with exponentially growing rate
-                 num_postdil=0,  # 3 Convs with no stride no dilation
-                 num_postproc=0,  # 1 Convs to add more depth
-                 ):
+
+    def __init__(
+        self,
+        in_channels,
+        image_height=1,
+        hid_channels=64,
+        num_preproc=0,  # 3 Convs with no stride no dilation
+        num_strided=0,  # 2 * stride Strided convs
+        strides=(2,),
+        kernels=None,
+        num_dilated=0,  # 3 Convs with exponentially growing rate
+        num_postdil=0,  # 3 Convs with no stride no dilation
+        num_postproc=0,  # 1 Convs to add more depth
+        identity=False,
+    ):
         super(ConvStack1D, self).__init__()
         self.hid_channels = hid_channels
         self.in_to_hid = nn.Conv1d(in_channels * image_height, hid_channels, 1)
@@ -90,6 +93,9 @@ class ConvStack1D(nn.Module):
             for _ in range(num_preproc)])
         strided = []
         self.length_reduction = 1
+        self.identity = identity
+        if self.identity:
+            return
         for i in range(num_strided):
             stride = strides[min(i, len(strides) - 1)]
             self.length_reduction *= stride
@@ -117,6 +123,9 @@ class ConvStack1D(nn.Module):
     def forward(self, x, lens=None):
         N, W, H, C = x.size()
         x = x.view(N, W, H * C).permute(0, 2, 1)
+        if self.identity:
+            return x.unsqueeze(2)
+
         # x is N C W now
         x = self.in_to_hid(x)
         for l in self.preproc_layers:

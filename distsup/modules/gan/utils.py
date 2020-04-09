@@ -3,6 +3,7 @@ from torch import (
     autograd,
     nn,
 )
+from torch.autograd import Variable
 
 
 class LReluCustom(nn.Module):
@@ -41,11 +42,14 @@ def compute_gradient_penalty(
     batch_size = real_data.size()[0]
     device = generated_data.device
     # Calculate interpolation
-    alpha = torch.rand(batch_size, 1, 1, device=device)
-    alpha = alpha.expand_as(real_data)
+    alpha = torch.rand(batch_size, 1, 1)
+    alpha = alpha.expand_as(real_data).to(device)
     interpolated = alpha * real_data.data + (1 - alpha) * generated_data.data
-    interpolated.requires_grad_()
-    interpolated = interpolated.to(device)
+    interpolated.requires_grad_(True)
+    interpolated = Variable(
+        interpolated,
+        requires_grad=True
+    ).to(device)
 
     # Calculate probability of interpolated examples
     prob_interpolated = discriminator.forward(interpolated)

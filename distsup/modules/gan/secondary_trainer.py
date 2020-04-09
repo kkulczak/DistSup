@@ -27,10 +27,8 @@ class SecondaryTrainerGAN:
         self.dataloader_iter = iter(self.vanilla_dataloader)
         self.config = config
         self.data_manipulator = GanConcatedWindowsDataManipulation(
+            gan_config=config,
             encoder_length_reduction=self.model.encoder.length_reduction,
-            concat_window=config.concat_window,
-            max_sentence_length=config.max_sentence_length,
-            repeat=config.repeat
         )
 
         self.optimizer_gen = optim.Adam(
@@ -67,7 +65,7 @@ class SecondaryTrainerGAN:
         ).float()
         if Globals.cuda:
             batch = batch.to('cuda')
-        return batch
+        return batch, target
 
     def sample_batch_from_encoder(self):
         batch = self.sample_vanilla_batch()
@@ -96,10 +94,10 @@ class SecondaryTrainerGAN:
     def iterate_step(self):
         stats = {}
         for i in range(self.config.dis_steps):
-            real_sample = self.sample_real_batch()
-            batched_sample_frame, target, lens = self.sample_gen_batch()
-
             self.model.gan_discriminator.zero_grad()
+            real_sample, real_target = self.sample_real_batch()
+
+            batched_sample_frame, target, lens = self.sample_gen_batch()
 
             fake_sample = self.model.gan_generator(batched_sample_frame)
 
@@ -122,27 +120,35 @@ class SecondaryTrainerGAN:
             dis_loss.backward()
             self.optimizer_dis.step()
 
-            stats['gradient_penalty'] = gradient_penalty.item()
-            stats['real_score'] = real_score.item()
-            stats['dis_loss'] = dis_loss.item()
+            stats['metrics/gradient_penalty'] = gradient_penalty.item()
+            stats['scores/real'] = real_score.item()
+            stats['losses/dis'] = dis_loss.item()
 
         for i in range(self.config.gen_steps):
+            self.model.gan_generator.zero_grad()
             batched_sample_frame, target, lens = self.sample_gen_batch()
-
-            self.model.gan_discriminator.zero_grad()
 
             fake_sample = self.model.gan_generator(batched_sample_frame)
 
             fake_pred = self.model.gan_discriminator(fake_sample)
-
-            self.model.gan_generator.zero_grad()
 
             fake_score = fake_pred.mean()
             gen_loss = - fake_score
             gen_loss.backward()
             self.optimizer_gen.step()
 
-            stats['fake_score'] = fake_score.item()
-            stats['gen_loss'] = gen_loss.item()
+            stats['scores/fake'] = fake_score.item()
+            stats['losses/gen'] = gen_loss.item()
+            stats['scores/diff_abs'] = (
+                fake_score.item() - real_score.item()
+            )
+            stats['gp_impact'] = (
+                gradient_penalty.item() / (
+                dis_loss.item()
+            ) * self.config.gradient_penalty_ratio
+            )
+            stats['accuracy/train_batch'] = (
+                target.long() == fake_sample.argmax(-1).long()
+            ).float().mean().item()
 
         return {f'GAN_{k}': v for k, v in stats.items()}

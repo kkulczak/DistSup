@@ -21,3 +21,5 @@ data/*
 .settings
 .pydevproject
 .vscode
+/enc_batch_transform.ipynb
+.idea

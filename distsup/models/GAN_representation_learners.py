@@ -128,12 +128,9 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
                     'encoder_element_size': self.encoder.hid_channels,
                 }
             )
-            config = GanConfig(**gan_generator['gan_config'])
             self.gan_data_manipulator = GanConcatedWindowsDataManipulation(
+                gan_config=GanConfig(**gan_generator['gan_config']),
                 encoder_length_reduction=self.encoder.length_reduction,
-                concat_window=config.concat_window,
-                max_sentence_length=101,
-                repeat=1
             )
         if gan_discriminator is None:
             self.gan_discriminator = gan_discriminator
@@ -217,7 +214,6 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         except AssertionError as e:
             print(e)
             breakpoint()
-        # torch.save(enc, 'enc_out.pt')
         b, t, h, c = enc.size()
         enc = enc.contiguous().view(b, t, 1, h * c)
         quant, kl, info = self.bottleneck(enc, bottleneck_cond, enc_len=enc_len)
@@ -391,15 +387,9 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
 
     def evaluate(self, batches):
         tot_examples = 0.
-        # tot_loss = 0.
-        # tot_detached_probesloss = 0.
-        # tot_backprop_probesloss = 0.
-        tot_errs = 0.
-        #
-        # alis_es = []
-        # alis_gt = []
-        # alis_lens = []
-        # total_stats = {}
+        tot_correct_letters = 0.
+        tot_all_letters = 0.
+        tot_correct_all_letters = 0.
 
         first_batch = None
 
@@ -408,115 +398,39 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
                 first_batch = copy.deepcopy(batch)
 
             num_examples = batch['features'].shape[0]
-            loss, stats, tokens = self.minibatch_loss_and_tokens(
+            loss, stats, torch_tokens = self.minibatch_loss_and_tokens(
                 batch,
                 train_model=False
             )
-            literal_errors = [
-                (target[:_len] != _tokens[:_len]).sum()
+            target: np.ndarray = stats['target'].cpu().int().numpy()
+            lens: np.ndarray = stats['lens'].cpu().numpy()
+            tokens: np.ndarray = torch_tokens.cpu().int().numpy()
+            literal_accuracy = [
+                (target[:_len] == _tokens[:_len]).sum()
                 for _len, target, _tokens in zip(
-                    stats['lens'].cpu(),
-                    stats['target'].cpu().int(),
-                    tokens.cpu().int()
+                    lens,
+                    target,
+                    tokens
                 )
             ]
-            tot_errs += sum(literal_errors).item()
-            tot_examples += stats['lens'].sum().item()
+            tot_correct_letters += np.array(literal_accuracy).sum()
+            tot_examples += lens.sum()
+
+            tot_correct_all_letters += (tokens == target).sum()
+            tot_all_letters += tokens.size
         print('#' * 40)
-        print(stats['target'][0][:stats['lens'][0] + 1])
-        print(tokens[0][:stats['lens'][0] + 1])
-        print('#' * 40)
+        for i in range(3):
+            print(f'target {i}:', stats['target'][i])
+            print(f'value  {i}:', torch.from_numpy(tokens[i]))
+            print('#' * 40)
 
         return {
-            'literal_errs': tot_errs / tot_examples
-        }
+            'accuracy/eval': tot_correct_letters / tot_examples,
+            'accuracy/eval_with_paddings': (
+                tot_correct_all_letters / tot_all_letters
+            ),
 
-        #     if tokens is not None:
-        #         # Tokens should be in layout B x W x 1 x 1
-        #         tokens = utils.safe_squeeze(tokens, dim=3)
-        #         tokens = utils.safe_squeeze(tokens, dim=2)
-        #
-        #         feat_len = batch['features_len']
-        #         alis_lens.append(feat_len)
-        #
-        #         # the tokens should match the rate of the alignment
-        #         ali_es = self.align_tokens_to_features(batch, tokens)
-        #         assert (ali_es.shape[0] == batch['features'].shape[0])
-        #         assert (ali_es.shape[1] == batch['features'].shape[1])
-        #         alis_es.append(ali_es[:, :])
-        #         if 'alignment' in batch:
-        #             ali_gt = batch['alignment']
-        #             ali_len = batch['alignment_len']
-        #
-        #             assert ((ali_len == feat_len).all())
-        #             alis_gt.append(ali_gt)
-        #
-        #     tot_examples += num_examples
-        #     tot_loss += loss * num_examples
-        #     tot_errs += stats.get('err', np.nan) * num_examples
-        #
-        #     tot_detached_probesloss += detached_loss * num_examples
-        #     tot_backprop_probesloss += backprop_loss * num_examples
-        #     for k, v in stats.items():
-        #         if k == 'segmental_values':
-        #             if logger.is_currently_logging():
-        #                 import matplotlib.pyplot as plt
-        #                 f = plt.figure(dpi=300)
-        #                 plt.plot(v.data.cpu().numpy(), 'r.-')
-        #                 f.set_tight_layout(True)
-        #                 logger.log_mpl_figure(f'segmentation_values', f)
-        #         elif utils.is_scalar(v):
-        #             if k not in total_stats:
-        #                 total_stats[k] = v * num_examples
-        #             else:
-        #                 total_stats[k] += v * num_examples
-        # # loss is special, as we use it e.g. for learn rate control
-        # # add all signals that we train agains, but remove the passive ones
-        # all_scores = {
-        #     'loss': (tot_loss + tot_backprop_probesloss) / tot_examples,
-        #     'probes_backprop_loss': tot_backprop_probesloss / tot_examples,
-        #     'probes_detached_loss': tot_detached_probesloss / tot_examples,
-        #     'err': tot_errs / tot_examples,
-        #     'probes_loss': (tot_detached_probesloss + tot_backprop_probesloss
-        #                     ) / tot_examples
-        # }
-        #
-        # for k, v in total_stats.items():
-        #     all_scores[k] = v / tot_examples
-        #
-        # if (len(alis_es) > 0) and (len(alis_gt) > 0):
-        #     # If we have gathered any alignments
-        #     f1_scores = dict(precision=[], recall=[], f1=[])
-        #     for batch in zip(alis_gt, alis_es, alis_lens):
-        #         batch = [t.detach().cpu().numpy() for t in batch]
-        #         for k, v in scoring.compute_f1_scores(*batch, delta=1).items():
-        #             f1_scores[k].extend(v)
-        #     for k in ('f1', 'precision', 'recall'):
-        #         print(f"f1/{k}: {np.mean(f1_scores[k])}")
-        #         logger.log_scalar(f'f1/{k}', np.mean(f1_scores[k]))
-        #
-        #     alis_es = self._unpad_and_concat(alis_es, alis_lens)
-        #     alis_gt = self._unpad_and_concat(alis_gt, alis_lens) if len(
-        #         alis_gt) else None
-        #
-        #     scores_to_compute = [('', lambda x: x)]
-        #     if alis_gt is not None and self.pad_symbol is not None:
-        #         not_pad = (alis_gt != self.pad_symbol)
-        #         scores_to_compute.append(('nonpad_', lambda x: x[not_pad]))
-        #
-        #     if alis_gt is not None and alis_es.min() < 0:
-        #         not_pad2 = (alis_es != -1)
-        #         scores_to_compute.append(
-        #             ('validtokens_', lambda x: x[not_pad2]))
-        #
-        #     for prefix, ali_filter in scores_to_compute:
-        #         es = ali_filter(alis_es)
-        #
-        #
-        #         perplexity_scores = self._perplexity_metrics(es, prefix=prefix)
-        #         all_scores.update(perplexity_scores)
-        #
-        # return all_scores
+        }
 
     def minibatch_loss_and_tokens(
         self,
@@ -525,7 +439,6 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         return_encoder_output=False,
     ):
 
-        # self.print_ali_num_segments(batch)
         self.pad_features(batch)
         feats = batch['features']
         bottleneck_cond = self.bottleneck_cond(batch)
@@ -538,21 +451,32 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         if return_encoder_output:
             return encoder_output.detach()
 
-        if not train_model:
-            batched_sample_frame, target, lens = \
-                self.gan_data_manipulator.prepare_gan_batch(
-                    encoder_output,
-                    batch['alignment'].cpu()
-                )
-            res = self.gan_generator(batched_sample_frame)
-            res = res.argmax(dim=-1)
-            return 0., {'target': target, 'lens': lens}, res
+        if train_model:
+            needs_rec_image = logger.is_currently_logging()
 
-        needs_rec_image = logger.is_currently_logging()
+            rec_loss, details, inputs, rec_imgs = self.reconstruction_loss(
+                batch, conds, needs_rec_image=needs_rec_image)
 
-        rec_loss, details, inputs, rec_imgs = self.reconstruction_loss(
-            batch, conds, needs_rec_image=needs_rec_image)
+            self.log_images(feats, info, inputs, rec_imgs)
 
-        self.log_images(feats, info, inputs, rec_imgs)
+            return rec_loss, details, info['indices']
 
-        return rec_loss, details, info['indices']
+        batched_sample_frame, target, lens = \
+            self.gan_data_manipulator.prepare_gan_batch(
+                encoder_output,
+                batch['alignment'].cpu()
+            )
+        res = self.gan_generator(batched_sample_frame)
+        res = res.argmax(dim=-1)
+        return (
+            0.,
+            {
+                'target': target,
+                'lens': lens,
+                'encoder_output': encoder_output,
+                'alignment': batch['alignment'],
+            },
+            res
+        )
+
+

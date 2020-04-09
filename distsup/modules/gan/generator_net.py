@@ -35,7 +35,7 @@ class LinearGeneratorNet(nn.Module):
             nn.Linear(self.gan_config.gen_hidden_size, self.n_out),
         )
 
-    def forward(self, x, temperature: float = 0.9):
+    def forward(self, x: torch.Tensor, temperature: float = 0.9):
         batch_size, phrase_length, _ = x.shape
         x = x.reshape(
             batch_size * phrase_length,

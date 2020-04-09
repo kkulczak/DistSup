@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(frozen=True)
 class GanConfig:
     concat_window: int
     dictionary_size: int

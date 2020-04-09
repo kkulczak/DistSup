@@ -135,7 +135,7 @@ def main():
     if args.debug_anomaly:
         torch.autograd.set_detect_anomaly(True)
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.ERROR)
 
     if args.rng_seed is not None:
         logging.info("Reseting the random seed")
