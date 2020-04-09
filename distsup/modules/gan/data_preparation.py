@@ -6,7 +6,7 @@ import torch
 from distsup.modules.gan.data_types import GanConfig
 from distsup.utils import (
     rleEncode,
-)
+    safe_squeeze, )
 
 
 # DICT_SIZE = 70
@@ -63,8 +63,7 @@ class GanConcatedWindowsDataManipulation:
         return train_bnd, train_bnd_range, target, lens
 
     def prepare_gan_batch(self, x, alignment):
-        # USE SAFE SQUEEZE on ERROR
-        # x = x.squeeze()
+        x = safe_squeeze(x, dim=2)
         batch_size, phrase_length, data_size = x.shape
 
         indexer = self.generate_indexer(phrase_length)

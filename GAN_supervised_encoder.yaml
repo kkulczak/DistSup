@@ -76,8 +76,9 @@ Trainer:
     factor: 0.5
     patience: 2
   output_frequency: 20
-  num_epochs: 30
+  num_epochs: 40
   optimizer_name: Adam
+  skip_training: False
 
 
 #to będzie wstrzyknięte do generatora, dyscriminatora oraz Trenera jako Klasa GanConfig
@@ -95,7 +96,7 @@ gan_config:
   dictionary_size: 70
 # Tutaj definiujemy długość wyjścia z encodera
 # Jeżeli alignment zawiera więcej literek, to po prostu przycinam tą ilość
-  max_sentence_length: 25
+  max_sentence_length: 64
 # waga dla gp_penalty Chińskiego GANa
   gradient_penalty_ratio: 10.0
   # Discriminator part
