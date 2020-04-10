@@ -77,7 +77,8 @@ class TrainerForGan(object):
         polyak_decay=0,
         codebook_lr=None,
         gan_config=None,
-        skip_training=False
+        skip_training=False,
+        distsup_training=True,
     ):
         super(TrainerForGan, self).__init__()
 
@@ -116,6 +117,7 @@ class TrainerForGan(object):
         self.gan_config = GanConfig(**gan_config)
         self.gan_trainer: Optional[SecondaryTrainerGAN] = None
         self.skip_training = skip_training
+        self.distsup_training = distsup_training
 
 
     def _log_train_batch(self, loss, stats, optimizer):
@@ -292,11 +294,14 @@ class TrainerForGan(object):
 
 
             # with summary.Summary(model):
-            if 1:
+            if self.distsup_training:
                 loss, stats, tokens = model.minibatch_loss(
                     batch,
                     train_model=True,
                 )
+            else:
+                stats = {}
+                loss = torch.tensor(0., requires_grad=True)
 
             #### HERE GAN GOING!!!
             gan_stats = self.gan_trainer.iterate_step()

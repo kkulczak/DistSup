@@ -79,7 +79,7 @@ Trainer:
   num_epochs: 40
   optimizer_name: Adam
   skip_training: False
-
+  distsup_training: False
 
 #to będzie wstrzyknięte do generatora, dyscriminatora oraz Trenera jako Klasa GanConfig
 # distsup.modules.gan.data_types.GanConfig
