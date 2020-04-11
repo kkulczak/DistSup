@@ -76,7 +76,7 @@ Trainer:
     factor: 0.5
     patience: 2
   output_frequency: 20
-  num_epochs: 30
+  num_epochs: 40
   optimizer_name: Adam
   skip_training: False
   distsup_training: False
@@ -87,7 +87,7 @@ Trainer:
 # Jest to brzydki hack :(
 gan_config:
 # Ustawienie na 1 wyłącza funkcjonalnosć. Wzięte od Chińczyków
-  concat_window: 1
+  concat_window: 5
   repeat: 1
 # Uproszczenie zadania
 # Zmniejszyłem do 7 dostępne literki

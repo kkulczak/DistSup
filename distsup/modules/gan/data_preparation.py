@@ -111,6 +111,6 @@ class GanConcatedWindowsDataManipulation:
         batched_sample_frame[~mask] = torch.eye(
             data_size,
             device=batched_sample_frame.device
-        )[0]
+        )[0].repeat(self.windows_size)
 
         return batched_sample_frame, target, lens
