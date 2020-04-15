@@ -7,7 +7,6 @@ import torch.nn.functional as F
 
 from distsup import (
     utils,
-    scoring,
 )
 from distsup.logger import default_tensor_logger
 from distsup.models import streamtokenizer
@@ -126,6 +125,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
                 gan_generator,
                 additional_parameters={
                     'encoder_element_size': self.encoder.hid_channels,
+                    'encoder_length_reduction': self.encoder.length_reduction,
                 }
             )
             self.gan_data_manipulator = GanConcatedWindowsDataManipulation(
@@ -405,9 +405,11 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             target: np.ndarray = stats['target'].cpu().int().numpy()
             if self.gan_data_manipulator.use_all_letters:
                 lens: np.ndarray = batch['alignment_len'].cpu().numpy()
+                True
             else:
                 lens: np.ndarray = stats['lens'].cpu().numpy()
-            tokens: np.ndarray = torch_tokens.cpu().int().numpy()
+            tokens: np.ndarray = torch_tokens.cpu().int().numpy()[:,
+            :target.shape[1]]
             literal_accuracy = [
                 (target[:_len] == _tokens[:_len]).sum()
                 for _len, target, _tokens in zip(
@@ -470,7 +472,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
                 batch['alignment'].cpu(),
                 length=self.gan_generator.gan_config.eval_sentence_length
             )
-        res = self.gan_generator(batched_sample_frame)
+        res: torch.Tensor = self.gan_generator(batched_sample_frame)
         res = res.argmax(dim=-1)
         return (
             0.,
@@ -482,5 +484,3 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             },
             res
         )
-
-

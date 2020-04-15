@@ -12,12 +12,14 @@ class LinearGeneratorNet(nn.Module):
         self,
         gan_config: dict,
         encoder_element_size: int,
+        encoder_length_reduction: int,
         z_size: int = 0,
         **kwargs,
     ):
         super(LinearGeneratorNet, self).__init__()
         self.gan_config = GanConfig(**gan_config)
         self.encoder_element_size = encoder_element_size
+        self.encoder_length_reduction = encoder_length_reduction
         # self.phrase_length = phrase_length
         self.z_size = z_size
 
@@ -61,4 +63,11 @@ class LinearGeneratorNet(nn.Module):
         )
         soft_prob = softmax_gumbel_noise(log_prob, temperature)
 
-        return soft_prob
+        if self.gan_config.use_all_letters:
+            repeated = soft_prob.repeat_interleave(
+                self.encoder_length_reduction,
+                dim=1
+            )
+        else:
+            repeated = soft_prob
+        return repeated

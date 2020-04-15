@@ -81,6 +81,15 @@ class GanConcatedWindowsDataManipulation:
             (batch_size, phrase_length, self.windows_size * data_size)
         )
 
+        if self.use_all_letters:
+            lens = torch.full(
+                (batch_size,),
+                fill_value=windowed_x.shape[1],
+                dtype=torch.long
+            )
+            target = alignment
+            return windowed_x, target, lens
+
         expanded_x = torch.repeat_interleave(
             windowed_x,
             self.encoder_length_reduction,
