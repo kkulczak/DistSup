@@ -1,4 +1,5 @@
 import logging
+from typing import Optional, Tuple
 
 import numpy as np
 import torch
@@ -23,8 +24,7 @@ class GanConcatedWindowsDataManipulation:
         self.max_sentence_length = gan_config.max_sentence_length
         self.repeat = gan_config.repeat
         self.dictionary_size = gan_config.dictionary_size
-
-
+        self.use_all_letters = gan_config.use_all_letters
 
     def generate_indexer(self, phrase_length) -> torch.tensor:
         concat_window_indexes = (
@@ -39,7 +39,7 @@ class GanConcatedWindowsDataManipulation:
 
     def extract_alignment_data(self, alignment, length=None):
         if length is None:
-            length=self.max_sentence_length
+            length = self.max_sentence_length
         train_bnd = torch.zeros(
             (alignment.shape[0], length),
             dtype=torch.long
@@ -64,7 +64,13 @@ class GanConcatedWindowsDataManipulation:
             target[i, :_len] = values
         return train_bnd, train_bnd_range, target, lens
 
-    def prepare_gan_batch(self, x, alignment, length=None):
+    def prepare_gan_batch(
+        self,
+        x: torch.Tensor,
+        alignment: torch.Tensor,
+        length=None,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+
         if length is None:
             length = self.max_sentence_length
         x = safe_squeeze(x, dim=2)
@@ -80,6 +86,17 @@ class GanConcatedWindowsDataManipulation:
             self.encoder_length_reduction,
             dim=1
         )
+        if self.use_all_letters:
+            if expanded_x.shape[:2] != alignment.shape[:2]:
+                sent_len_diff = expanded_x.shape[1] - alignment.shape[1]
+                assert (0 <= sent_len_diff < self.encoder_length_reduction)
+                expanded_x = expanded_x[:, :alignment.shape[1]]
+
+            assert expanded_x.shape[:2] == alignment.shape[:2]
+            lens = (torch.ones((batch_size,), dtype=torch.long) *
+                    expanded_x.shape[1])
+            target = alignment
+            return expanded_x, target, lens
 
         train_bnd, train_bnd_range, target, lens = self.extract_alignment_data(
             alignment,

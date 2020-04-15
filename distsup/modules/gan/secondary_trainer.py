@@ -54,10 +54,14 @@ class SecondaryTrainerGAN:
             for _ in range(self.config.repeat)
         ]
         batch = torch.cat(alignments, dim=0)
-        _train_bnd, _train_bnd_range, target, _lens = \
-            self.data_manipulator.extract_alignment_data(
-                batch
-            )
+        if self.config.use_all_letters:
+            target = batch.clone()
+        else:
+            _train_bnd, _train_bnd_range, target, _lens = \
+                self.data_manipulator.extract_alignment_data(
+                    batch
+                )
+
         batch = F.one_hot(
             target.long(),
             num_classes=self.config.dictionary_size

@@ -79,7 +79,7 @@ Trainer:
   num_epochs: 40
   optimizer_name: Adam
   skip_training: False
-  distsup_training: False
+  distsup_training: True
 
 #to będzie wstrzyknięte do generatora, dyscriminatora oraz Trenera jako Klasa GanConfig
 # distsup.modules.gan.data_types.GanConfig
@@ -87,7 +87,7 @@ Trainer:
 # Jest to brzydki hack :(
 gan_config:
 # Ustawienie na 1 wyłącza funkcjonalnosć. Wzięte od Chińczyków
-  concat_window: 5
+  concat_window: 1
   repeat: 1
 # Uproszczenie zadania
 # Zmniejszyłem do 7 dostępne literki
@@ -96,10 +96,11 @@ gan_config:
   dictionary_size: 70
 # Tutaj definiujemy długość wyjścia z encodera
 # Jeżeli alignment zawiera więcej literek, to po prostu przycinam tą ilość
-  max_sentence_length: 64
+  max_sentence_length: 16
   eval_sentence_length: 64
 # waga dla gp_penalty Chińskiego GANa
   gradient_penalty_ratio: 10.0
+  use_all_letters: True
   # Discriminator part
   dis_steps: 3
   dis_emb_size: 256

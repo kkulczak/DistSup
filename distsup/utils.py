@@ -70,7 +70,7 @@ def maybe_get_scalar(t):
     return False, None
 
 
-def safe_squeeze(t, dim):
+def safe_squeeze(t: torch.Tensor, dim: int) -> torch.Tensor:
     assert t.size(dim) == 1
     return t.squeeze(dim)
 

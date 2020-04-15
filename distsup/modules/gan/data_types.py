@@ -19,3 +19,5 @@ class GanConfig:
     gen_hidden_size: int
     gen_steps: int
     gen_learning_rate: float
+    # Optional
+    use_all_letters: bool = False
