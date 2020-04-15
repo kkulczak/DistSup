@@ -403,7 +403,10 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
                 train_model=False
             )
             target: np.ndarray = stats['target'].cpu().int().numpy()
-            lens: np.ndarray = stats['lens'].cpu().numpy()
+            if self.gan_data_manipulator.use_all_letters:
+                lens: np.ndarray = batch['alignment_len'].cpu().numpy()
+            else:
+                lens: np.ndarray = stats['lens'].cpu().numpy()
             tokens: np.ndarray = torch_tokens.cpu().int().numpy()
             literal_accuracy = [
                 (target[:_len] == _tokens[:_len]).sum()
