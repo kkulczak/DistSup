@@ -9,8 +9,8 @@ Datasets:
         split: train
         alignment_root: "data/scribblelens.paths.1.4b.zip"
         vocabulary: egs/scribblelens/tasman.alphabet.plus.space.mode5.json
-        alignment_mod: 7
-      chunk_len: 16
+#        alignment_mod: 7
+      chunk_len: 96
       training: true
       varlen_fields: [image, alignment]
       drop_fields: [
@@ -49,18 +49,18 @@ Model:
     num_dilated: 2
     num_postdil: 3
 # Tą flagą zamieniam ConvStack1D w identyczność nie tracąc kompatybilności wstecznej
-    identity: True
+    identity: False
   reconstructor:
     class_name: distsup.modules.reconstructors.NullReconstructor
-#  aux_heads:
-#    enc_sup:
-#      layer: encoder
-#      target: alignment
-#      predictor:
-#        class_name: distsup.modules.predictors.FramewisePredictor
-#        aggreg: 1
-#        use_two_layer_predictor: False
-#      bp_to_main: True
+  aux_heads:
+    enc_sup:
+      layer: encoder
+      target: alignment
+      predictor:
+        class_name: distsup.modules.predictors.FramewisePredictor
+        aggreg: 1
+        use_two_layer_predictor: False
+      bp_to_main: True
   gan_generator:
     class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
     gan_config: True
@@ -79,7 +79,7 @@ Trainer:
     factor: 0.5
     patience: 2
   output_frequency: 20
-  num_epochs: 25
+  num_epochs: 40
   optimizer_name: Adam
   distsup_training: False
 
@@ -98,8 +98,8 @@ gan_config:
   dictionary_size: 68
 # Tutaj definiujemy długość wyjścia z encodera
 # Jeżeli alignment zawiera więcej literek, to po prostu przycinam tą ilość
-  max_sentence_length: 16
-  eval_sentence_length: 16
+  max_sentence_length: 96
+  eval_sentence_length: 96
 # waga dla gp_penalty Chińskiego GANa
   gradient_penalty_ratio: 10.0
   use_all_letters: True
@@ -111,6 +111,6 @@ gan_config:
   dis_learning_rate: 0.002
   # Generator part
   gen_steps: 1
-  gen_hidden_size: 71
+  gen_hidden_size: 512
   gen_learning_rate: 0.001
   
