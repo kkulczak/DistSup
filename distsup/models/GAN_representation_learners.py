@@ -396,6 +396,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         probe_acc = []
         acc = []
         acc_no_padding = []
+        mask_coverage = []
         first_batch = None
         for batch in batches:
             if first_batch is None:
@@ -420,6 +421,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             correct = (tokens == target)
             acc.append(correct[mask].mean())
             acc_no_padding.append(correct.mean())
+            mask_coverage.append(mask.float().mean())
 
             # probe stats
             if 'enc_sup' in self.probes.keys():
@@ -439,8 +441,9 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
 
         return {
             'gan_accuracy/acc': np.array(acc).mean(),
-            'gan_accuracy/acc_no_padding': np.array(acc_no_padding).mean(),
+            'gan_accuracy/acc_without_mask': np.array(acc_no_padding).mean(),
             'gan_accuracy/probe': np.array(probe_acc).mean(),
+            'gan_accuracy/mask_coverage': np.array(mask_coverage).mean()
 
         }
 

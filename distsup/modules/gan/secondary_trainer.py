@@ -169,9 +169,10 @@ class SecondaryTrainerGAN:
                 self.config.max_sentence_length
             ).long()
             corrects = (target.long() == fake_sample.argmax(-1).long()).float()
-            stats['gan_accuracy/letters'] = corrects[mask].mean().item()
+            stats['gan_accuracy/acc'] = corrects[mask].mean().item()
             stats[
-                'gan_accuracy/letters_including_ending_zeros'
+                'gan_accuracy/acc_without_mask'
             ] = corrects.mean().item()
+            stats['gan_accuracy/mask_coverage'] = mask.float().mean().item()
 
         return stats
