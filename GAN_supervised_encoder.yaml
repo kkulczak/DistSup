@@ -105,7 +105,7 @@ gan_config:
   gradient_penalty_ratio: 10.0
   use_all_letters: True
   # Discriminator part
-  dis_steps: 1
+  dis_steps: 3
   dis_emb_size: 13
   dis_hidden_1_size: 17
   dis_hidden_2_size: 19
