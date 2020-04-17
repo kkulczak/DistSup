@@ -1,7 +1,7 @@
 Datasets:
   train:
     class_name: FixedDatasetLoader
-    batch_size: 3
+    batch_size: 64
     dataset:
       class_name: distsup.data.ChunkedDataset
       dataset:
@@ -26,7 +26,7 @@ Datasets:
     drop_last: True
   dev:
     class_name: PaddedDatasetLoader
-    batch_size: 3
+    batch_size: 64
     dataset:
       class_name: egs.scribblelens.data.ScribbleLensDataset
       split: test
