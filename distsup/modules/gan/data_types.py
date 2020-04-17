@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+import torch
+
 
 @dataclass(frozen=True)
 class GanConfig:
@@ -21,3 +23,8 @@ class GanConfig:
     gen_learning_rate: float
     # Optional
     use_all_letters: bool = False
+
+@dataclass
+class EncoderOutput:
+    data: torch.Tensor
+    lens: torch.Tensor

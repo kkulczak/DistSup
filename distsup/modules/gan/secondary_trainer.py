@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from torch import optim
 import torch.nn.functional as F
 import torch.utils.data
@@ -6,8 +8,10 @@ from distsup.configuration import Globals
 from distsup.models.GAN_representation_learners import GanRepresentationLearner
 from distsup.modules.gan.data_preparation import \
     GanConcatedWindowsDataManipulation
-from distsup.modules.gan.data_types import GanConfig
-from distsup.modules.gan.utils import compute_gradient_penalty
+from distsup.modules.gan.data_types import GanConfig, EncoderOutput
+from distsup.modules.gan.utils import (compute_gradient_penalty, assert_one_hot,
+                                       assert_as_target, )
+from distsup.utils import get_mask1d
 
 
 class SecondaryTrainerGAN:
@@ -70,7 +74,7 @@ class SecondaryTrainerGAN:
             batch = batch.to('cuda')
         return batch, target
 
-    def sample_batch_from_encoder(self):
+    def sample_batch_from_encoder(self) -> Tuple[EncoderOutput, torch.Tensor]:
         batch = self.sample_vanilla_batch()
         if Globals.cuda:
             batch = self.model.batch_to_device(batch, 'cuda')
@@ -84,7 +88,7 @@ class SecondaryTrainerGAN:
         encoder_output, alignment = self.sample_batch_from_encoder()
         batched_sample_frame, target, lens = \
             self.data_manipulator.prepare_gan_batch(
-                encoder_output.cpu(),
+                encoder_output.data.cpu(),
                 alignment.cpu()
             )
         if Globals.cuda:
@@ -99,8 +103,14 @@ class SecondaryTrainerGAN:
         for i in range(self.config.dis_steps):
             self.model.gan_discriminator.zero_grad()
             real_sample, real_target = self.sample_real_batch()
+            if self.model.encoder.identity:
+                assert_one_hot(real_sample)
+                assert_as_target(real_sample, real_target)
 
             batched_sample_frame, target, lens = self.sample_gen_batch()
+            if self.model.encoder.identity:
+                assert_one_hot(batched_sample_frame)
+                assert_as_target(batched_sample_frame, target)
 
             fake_sample = self.model.gan_generator(batched_sample_frame)
 
@@ -130,6 +140,9 @@ class SecondaryTrainerGAN:
         for i in range(self.config.gen_steps):
             self.model.gan_generator.zero_grad()
             batched_sample_frame, target, lens = self.sample_gen_batch()
+            if self.model.encoder.identity:
+                assert_one_hot(batched_sample_frame)
+                assert_as_target(batched_sample_frame, target)
 
             fake_sample = self.model.gan_generator(batched_sample_frame)
 
@@ -151,12 +164,10 @@ class SecondaryTrainerGAN:
             ) * self.config.gradient_penalty_ratio
             )
 
-            mask = (
-                torch.arange(
-                    self.config.max_sentence_length,
-                    device=target.device
-                )[None, :] < lens[:, None]
-            )
+            mask = get_mask1d(
+                lens,
+                self.config.max_sentence_length
+            ).long()
             corrects = (target.long() == fake_sample.argmax(-1).long()).float()
             stats['gan_accuracy/letters'] = corrects[mask].mean().item()
             stats[

@@ -1,4 +1,5 @@
 import copy
+from typing import Any, Tuple
 
 import numpy as np
 import torch
@@ -18,7 +19,9 @@ from distsup.modules import (
 )
 from distsup.modules.gan.data_preparation import \
     GanConcatedWindowsDataManipulation
-from distsup.modules.gan.data_types import GanConfig
+from distsup.modules.gan.data_types import EncoderOutput, GanConfig
+from distsup.modules.gan.utils import assert_as_target, assert_one_hot
+from distsup.utils import get_mask1d
 
 logger = default_tensor_logger.DefaultTensorLogger()
 
@@ -201,7 +204,8 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             )
         assert (batch['features'].size(1) % self.encoder.length_reduction) == 0
 
-    def conditioning(self, x, x_len, bottleneck_cond=None):
+    def conditioning(self, x, x_len, bottleneck_cond=None) -> Tuple[
+        Any, Any, Any, EncoderOutput]:
         """x: N x W x H x C
         """
         x = self.input_layer(x)
@@ -223,7 +227,10 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             x,
             None,  # conds,
             info,
-            enc
+            EncoderOutput(
+                data=enc,
+                lens=enc_len,
+            )
         )
 
     def align_tokens_to_features(self, batch, tokens):
@@ -386,43 +393,44 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
                 #     logger.log_mpl_figure(f'gen_samples{name}', sample_plot)
 
     def evaluate(self, batches):
-        tot_examples = 0.
-        tot_correct_letters = 0.
-        tot_all_letters = 0.
-        tot_correct_all_letters = 0.
-
+        probe_acc = []
+        acc = []
+        acc_no_padding = []
         first_batch = None
-
         for batch in batches:
             if first_batch is None:
                 first_batch = copy.deepcopy(batch)
 
-            num_examples = batch['features'].shape[0]
             loss, stats, torch_tokens = self.minibatch_loss_and_tokens(
                 batch,
                 train_model=False
             )
-            target: np.ndarray = stats['target'].cpu().int().numpy()
             if self.gan_data_manipulator.use_all_letters:
                 lens: np.ndarray = batch['alignment_len'].cpu().numpy()
-                True
             else:
                 lens: np.ndarray = stats['lens'].cpu().numpy()
-            tokens: np.ndarray = torch_tokens.cpu().int().numpy()[:,
-            :target.shape[1]]
-            literal_accuracy = [
-                (target[:_len] == _tokens[:_len]).sum()
-                for _len, target, _tokens in zip(
-                    lens,
-                    target,
-                    tokens
-                )
-            ]
-            tot_correct_letters += np.array(literal_accuracy).sum()
-            tot_examples += lens.sum()
+            target: np.ndarray = stats['target'].cpu().int().numpy()
+            tokens: np.ndarray = (
+                torch_tokens.cpu().int().numpy()[:, :target.shape[1]]
+            )
+            mask = get_mask1d(
+                torch.from_numpy(lens),
+                mask_length=target.shape[1]
+            ).int().numpy()
+            correct = (tokens == target)
+            acc.append(correct[mask].mean())
+            acc_no_padding.append(correct.mean())
 
-            tot_correct_all_letters += (tokens == target).sum()
-            tot_all_letters += tokens.size
+            # probe stats
+            if 'enc_sup' in self.probes.keys():
+                _, details = self.probes['enc_sup'].loss(
+                    features=batch['features'],
+                    targets=batch['alignment'],
+                    features_len=batch.get('features_len'),
+                    targets_len=batch.get('alignment_len')
+                )
+                probe_acc.append(details['acc'].item())
+
         print('#' * 40)
         for i in range(3):
             print(f'target {i}:', stats['target'][i])
@@ -430,10 +438,9 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             print('#' * 40)
 
         return {
-            'gan_accuracy/letters': tot_correct_letters / tot_examples,
-            'gan_accuracy/letters_including_ending_zeros': (
-                tot_correct_all_letters / tot_all_letters
-            ),
+            'gan_accuracy/acc': np.array(acc).mean(),
+            'gan_accuracy/acc_no_padding': np.array(acc_no_padding).mean(),
+            'gan_accuracy/probe': np.array(probe_acc).mean(),
 
         }
 
@@ -454,7 +461,10 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         )
 
         if return_encoder_output:
-            return encoder_output.detach()
+            return EncoderOutput(
+                data=encoder_output.data.detach(),
+                lens=encoder_output.lens,
+            )
 
         if train_model:
             needs_rec_image = logger.is_currently_logging()
@@ -468,10 +478,15 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
 
         batched_sample_frame, target, lens = \
             self.gan_data_manipulator.prepare_gan_batch(
-                encoder_output,
+                encoder_output.data,
                 batch['alignment'].cpu(),
                 length=self.gan_generator.gan_config.eval_sentence_length
             )
+
+        if self.encoder.identity:
+            assert_one_hot(batched_sample_frame)
+            assert_as_target(batched_sample_frame, target)
+
         res: torch.Tensor = self.gan_generator(batched_sample_frame)
         res = res.argmax(dim=-1)
         return (

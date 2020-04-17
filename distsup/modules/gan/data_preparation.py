@@ -95,17 +95,6 @@ class GanConcatedWindowsDataManipulation:
             self.encoder_length_reduction,
             dim=1
         )
-        if self.use_all_letters:
-            if expanded_x.shape[:2] != alignment.shape[:2]:
-                sent_len_diff = expanded_x.shape[1] - alignment.shape[1]
-                assert (0 <= sent_len_diff < self.encoder_length_reduction)
-                expanded_x = expanded_x[:, :alignment.shape[1]]
-
-            assert expanded_x.shape[:2] == alignment.shape[:2]
-            lens = (torch.ones((batch_size,), dtype=torch.long) *
-                    expanded_x.shape[1])
-            target = alignment
-            return expanded_x, target, lens
 
         train_bnd, train_bnd_range, target, lens = self.extract_alignment_data(
             alignment,

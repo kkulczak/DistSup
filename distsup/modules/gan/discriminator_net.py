@@ -95,6 +95,7 @@ class DiscriminatorNet(nn.Module):
         )
 
     def forward(self, x):
+        batch_size, phrase_length, element_size = x.shape
         x = torch.matmul(x, self.embedding_matrix.weight)
         conv1d_input = x.transpose(-1, -2)
         output_c_3_1 = self.conv_3_1(conv1d_input)
@@ -119,6 +120,6 @@ class DiscriminatorNet(nn.Module):
 
         x = self.lrelu_2(x)
 
-        x = x.reshape(-1, self.dense_input_size)
+        x = x.reshape(batch_size, self.dense_input_size)
         x = self.dense(x)
         return x

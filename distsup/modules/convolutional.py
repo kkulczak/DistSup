@@ -124,16 +124,17 @@ class ConvStack1D(nn.Module):
         N, W, H, C = x.size()
         x = x.view(N, W, H * C).permute(0, 2, 1)
         if self.identity:
-            return x.unsqueeze(2)
+            pass
+        else:
+            # x is N C W now
+            x = self.in_to_hid(x)
+            for l in self.preproc_layers:
+                x = x + l(torch.relu(x))
+            x = self.strided_layers(x)
+            for l in self.dil_layers:
+                x = x + l(torch.relu(x))
+            x = torch.relu(x)
 
-        # x is N C W now
-        x = self.in_to_hid(x)
-        for l in self.preproc_layers:
-            x = x + l(torch.relu(x))
-        x = self.strided_layers(x)
-        for l in self.dil_layers:
-            x = x + l(torch.relu(x))
-        x = torch.relu(x)
         x = x.permute(0, 2, 1).unsqueeze(2)
         if lens is None:
             return x

@@ -268,7 +268,8 @@ class ScribbleLensDataset(torch.utils.data.Dataset):
                  transcript_mode=2,
                  target_height=32,
                  target_width=-1,
-                 transform=None
+                 transform=None,
+                 alignment_mod=70,
                  ):
         """
         Args:
@@ -293,7 +294,7 @@ class ScribbleLensDataset(torch.utils.data.Dataset):
                      generateAlphabet.py egs/scribblelens/yamls/tasman.yaml
         """
         self.root = root
-
+        self.alignment_mod = alignment_mod
         self.file = zipfile.ZipFile(root)
         root = 'scribblelens.corpus.v1'
 
@@ -728,6 +729,8 @@ class ScribbleLensDataset(torch.utils.data.Dataset):
                       f"image len: {new_item['image'].size(0)} "
                       f"alignment len: {new_item['alignment'].size(0)}")
                 raise Exception("Bad alignment length")
+
+        new_item['alignment'] %= self.alignment_mod
         return new_item
 
 
