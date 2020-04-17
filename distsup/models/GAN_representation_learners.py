@@ -421,7 +421,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             correct = (tokens == target)
             acc.append(correct[mask].mean())
             acc_no_padding.append(correct.mean())
-            mask_coverage.append(mask.float().mean())
+            mask_coverage.append(mask.mean())
 
             # probe stats
             if 'enc_sup' in self.probes.keys():
