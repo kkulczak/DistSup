@@ -92,7 +92,7 @@ def assert_one_hot(x: torch.Tensor):
 
 
 def assert_as_target(x: torch.Tensor, target: torch.Tensor):
-    assert (x.cpu().argmax(dim=-1).long() == target.cpu()).all()
+    assert (x.cpu().argmax(dim=-1).long() == target.long().cpu()).all()
 
 
 class AlignmentPrettyPrinter:
