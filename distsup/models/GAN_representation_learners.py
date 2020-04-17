@@ -459,6 +459,14 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             batch.get('features_len'),
             bottleneck_cond
         )
+        if self.encoder.identity:
+            encoder_output = EncoderOutput(
+                data=F.one_hot(
+                    batch['alignment'].long(),
+                    num_classes=self.gan_generator.gan_config.dictionary_size
+                ).unsqueeze(dim=2).float(),
+                lens=batch.get('alignment_len')
+            )
 
         if return_encoder_output:
             return EncoderOutput(
@@ -490,7 +498,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
         res: torch.Tensor = self.gan_generator(batched_sample_frame)
         res = res.argmax(dim=-1)
         return (
-            0.,
+            torch.tensor(0., requires_grad=True),
             {
                 'target': target,
                 'lens': lens,
