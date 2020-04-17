@@ -79,7 +79,7 @@ Trainer:
     factor: 0.5
     patience: 2
   output_frequency: 20
-  num_epochs: 40
+  num_epochs: 10
   optimizer_name: Adam
   skip_training: False
   distsup_training: False
