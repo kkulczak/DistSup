@@ -21,7 +21,7 @@ from distsup.modules.gan.data_preparation import \
     GanConcatedWindowsDataManipulation
 from distsup.modules.gan.data_types import EncoderOutput, GanConfig
 from distsup.modules.gan.utils import assert_as_target, assert_one_hot
-from distsup.utils import get_mask1d
+from distsup.utils import get_mask1d, safe_squeeze
 
 logger = default_tensor_logger.DefaultTensorLogger()
 
@@ -182,6 +182,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             'as reconstructors there are.'
 
         self.input_layer = encoders.Identity()
+        self.printer = None
         self.add_probes()
 
     def pad_features(self, batch):
@@ -417,7 +418,7 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             mask = get_mask1d(
                 torch.from_numpy(lens),
                 mask_length=target.shape[1]
-            ).int().numpy()
+            ).to(torch.bool).numpy()
             correct = (tokens == target)
             acc.append(correct[mask].mean())
             acc_no_padding.append(correct.mean())
@@ -425,20 +426,26 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
 
             # probe stats
             if 'enc_sup' in self.probes.keys():
-                _, details = self.probes['enc_sup'].loss(
-                    features=batch['features'],
-                    targets=batch['alignment'],
-                    features_len=batch.get('features_len'),
-                    targets_len=batch.get('alignment_len')
+                encoder_output = stats['encoder_output']
+                probe_pred = safe_squeeze(
+                    self.probes['enc_sup'](encoder_output.data),
+                    dim=2,
                 )
-                probe_acc.append(details['acc'].item())
+                res_pred = probe_pred.repeat_interleave(
+                    self.encoder.length_reduction,
+                    dim=1
+                )
+                probe_tokens = res_pred.argmax(dim=2)[:, :target.shape[1]]
+                probe_acc.append(
+                    (target == probe_tokens.cpu().numpy())[mask].mean()
+                )
 
-        print('#' * 40)
         for i in range(3):
-            print(f'target {i}:', stats['target'][i])
-            print(f'value  {i}:', torch.from_numpy(tokens[i]))
-            print('#' * 40)
-
+            self.printer.show(
+                torch.from_numpy(tokens[i]),
+                stats['target'][i],
+            )
+        print('#' * self.printer.line_length)
         return {
             'gan_accuracy/acc': np.array(acc).mean(),
             'gan_accuracy/acc_without_mask': np.array(acc_no_padding).mean(),
@@ -478,13 +485,8 @@ class GanRepresentationLearner(streamtokenizer.StreamTokenizerNet):
             )
 
         if train_model:
-            needs_rec_image = logger.is_currently_logging()
-
             rec_loss, details, inputs, rec_imgs = self.reconstruction_loss(
-                batch, conds, needs_rec_image=needs_rec_image)
-
-            self.log_images(feats, info, inputs, rec_imgs)
-
+                batch, conds, needs_rec_image=False)
             return rec_loss, details, info['indices']
 
         batched_sample_frame, target, lens = \

@@ -8,9 +8,10 @@ from distsup.configuration import Globals
 from distsup.models.GAN_representation_learners import GanRepresentationLearner
 from distsup.modules.gan.data_preparation import \
     GanConcatedWindowsDataManipulation
-from distsup.modules.gan.data_types import GanConfig, EncoderOutput
-from distsup.modules.gan.utils import (compute_gradient_penalty, assert_one_hot,
-                                       assert_as_target, )
+from distsup.modules.gan.data_types import EncoderOutput, GanConfig
+from distsup.modules.gan.utils import (AlignmentPrettyPrinter, assert_as_target,
+                                       assert_one_hot,
+                                       compute_gradient_penalty, )
 from distsup.utils import get_mask1d
 
 
@@ -44,6 +45,7 @@ class SecondaryTrainerGAN:
             lr=self.config.dis_learning_rate,
             betas=(0.5, 0.9),
         )
+        self.printer = AlignmentPrettyPrinter(dataloader=train_dataloader)
 
     def sample_vanilla_batch(self):
         try:
@@ -98,7 +100,7 @@ class SecondaryTrainerGAN:
 
         return batched_sample_frame, target, lens
 
-    def iterate_step(self):
+    def iterate_step(self, show=False):
         stats = {}
         for i in range(self.config.dis_steps):
             self.model.gan_discriminator.zero_grad()
@@ -167,12 +169,20 @@ class SecondaryTrainerGAN:
             mask = get_mask1d(
                 lens,
                 self.config.max_sentence_length
-            ).long()
+            ).to(torch.bool)
             corrects = (target.long() == fake_sample.argmax(-1).long()).float()
             stats['gan_accuracy/acc'] = corrects[mask].mean().item()
             stats[
                 'gan_accuracy/acc_without_mask'
             ] = corrects.mean().item()
             stats['gan_accuracy/mask_coverage'] = mask.float().mean().item()
+
+        if show:
+            for i in range(1):
+                self.printer.show(
+                    fake_sample[i].argmax(-1).long(),
+                    target[i].long()
+                )
+            print('#' * self.printer.line_length)
 
         return stats

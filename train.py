@@ -31,6 +31,7 @@ from distsup.configuration import (
     Configuration,
     Globals,
 )
+from distsup.modules.gan.utils import AlignmentPrettyPrinter
 from distsup.utils import (
     extract_modify_dict,
     str2bool,
@@ -176,7 +177,7 @@ def main():
     if 'probe_train' in config['Datasets'].keys():
         probe_train_data = config['Datasets']['probe_train']
     model = config['Model']
-
+    model.printer = AlignmentPrettyPrinter(dataloader=eval_data['dev'])
     if args.initialize_from:
         initialize_from(
             model,

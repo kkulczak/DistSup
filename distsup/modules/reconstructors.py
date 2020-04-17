@@ -187,7 +187,7 @@ class NullReconstructor(nn.Module):
         return None
 
     def loss(self, logits, targets):
-        return torch.zeros_like(logits)
+        return torch.zeros_like(logits, requires_grad=True)
 
     def plot_debug_samples(self, *args, **kwargs):
         return None

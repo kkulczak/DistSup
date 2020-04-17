@@ -90,5 +90,31 @@ def assert_one_hot(x: torch.Tensor):
         breakpoint()
         raise
 
+
 def assert_as_target(x: torch.Tensor, target: torch.Tensor):
-    assert (x.cpu().argmax(dim=-1).int() == target.cpu()).all()
+    assert (x.cpu().argmax(dim=-1).long() == target.cpu()).all()
+
+
+class AlignmentPrettyPrinter:
+    def __init__(self, dataloader):
+        try:
+            alphabet = dataloader.dataset.alphabet.chars
+        except AttributeError:
+            alphabet = dataloader.dataset.dataset.alphabet.chars
+        self.chars = {
+            num: char
+            for char, num in alphabet.items()
+        }
+        self.line_length = 120
+
+    def show(self, x, target):
+        x = x.view(-1)
+        target = target.view(-1)
+        assert len(target) == len(x)
+        print('#' * self.line_length)
+        for i in range(0, len(target), self.line_length):
+            slc = slice(i, i + self.line_length)
+            if i != 0:
+                print('#' * self.line_length)
+            print(''.join([self.chars[y.item()] for y in target[slc]]))
+            print(''.join([self.chars[y.item()] for y in x[slc]]))

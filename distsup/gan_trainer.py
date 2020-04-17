@@ -304,7 +304,9 @@ class TrainerForGan(object):
                 loss = torch.tensor(0., requires_grad=True)
 
             #### HERE GAN GOING!!!
-            gan_stats = self.gan_trainer.iterate_step()
+            gan_stats = self.gan_trainer.iterate_step(
+                show=(self.current_iteration % self.output_frequency) == 0
+            )
             stats.update(gan_stats)
 
             if self.kill_on_nan:
