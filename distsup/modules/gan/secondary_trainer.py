@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Dict, Tuple
 
 from torch import optim
 import torch.nn.functional as F
@@ -55,28 +55,19 @@ class SecondaryTrainerGAN:
             return next(self.dataloader_iter)
 
     def sample_real_batch(self, device: str = 'cpu'):
-        alignments = [
-            self.sample_vanilla_batch()['alignment']
-            for _ in range(self.config.repeat)
-        ]
-        batch = torch.cat(alignments, dim=0)
-        if self.config.use_all_letters:
-            target = batch.clone()
-        else:
-            _train_bnd, _train_bnd_range, target, _lens = \
-                self.data_manipulator.extract_alignment_data(
-                    batch
-                )
+        batch = self.sample_vanilla_batch()
 
-        batch = F.one_hot(
-            target.long(),
+        real_sample = F.one_hot(
+            batch['alignment'].long(),
             num_classes=self.config.dictionary_size
         ).float()
         if Globals.cuda:
-            batch = batch.to('cuda')
-        return batch, target
+            real_sample = real_sample.to('cuda')
+            # batch = self.model.batch_to_device(batch, 'cuda')
+        return real_sample, batch
 
-    def sample_batch_from_encoder(self) -> Tuple[EncoderOutput, torch.Tensor]:
+    def sample_batch_from_encoder(self
+    ) -> Tuple[EncoderOutput, Dict[str, torch.Tensor]]:
         batch = self.sample_vanilla_batch()
         if Globals.cuda:
             batch = self.model.batch_to_device(batch, 'cuda')
@@ -84,37 +75,31 @@ class SecondaryTrainerGAN:
             batch,
             return_encoder_output=True
         )
-        return encoder_output, batch['alignment']
+        return encoder_output, batch
 
     def sample_gen_batch(self):
-        encoder_output, alignment = self.sample_batch_from_encoder()
-        batched_sample_frame, target, lens = \
-            self.data_manipulator.prepare_gan_batch(
-                encoder_output.data.cpu(),
-                alignment.cpu()
-            )
-        if Globals.cuda:
-            batched_sample_frame = batched_sample_frame.to('cuda')
-            target = target.to('cuda')
-            lens = lens.to('cuda')
-
-        return batched_sample_frame, target, lens
+        encoder_output, batch = self.sample_batch_from_encoder()
+        return encoder_output, batch
 
     def iterate_step(self, show=False):
         stats = {}
         for i in range(self.config.dis_steps):
             self.model.gan_discriminator.zero_grad()
-            real_sample, real_target = self.sample_real_batch()
+            real_sample, real_batch = self.sample_real_batch()
             if self.model.encoder.identity:
                 assert_one_hot(real_sample)
-                assert_as_target(real_sample, real_target)
+                assert_as_target(real_sample, real_batch['alignment'])
 
-            batched_sample_frame, target, lens = self.sample_gen_batch()
+            encoder_output, fake_batch = self.sample_gen_batch()
             if self.model.encoder.identity:
-                assert_one_hot(batched_sample_frame)
-                assert_as_target(batched_sample_frame, target)
+                assert_one_hot(encoder_output.data)
+                assert_as_target(encoder_output.data, fake_batch['alignment'])
 
-            fake_sample = self.model.gan_generator(batched_sample_frame)
+            compressed_fake_sample = self.model.gan_generator(encoder_output.data)
+            fake_sample = compressed_fake_sample.repeat_interleave(
+                    self.model.encoder.length_reduction,
+                    dim=1
+                )
 
             fake_pred = self.model.gan_discriminator(fake_sample)
             real_pred = self.model.gan_discriminator(real_sample)
@@ -141,12 +126,17 @@ class SecondaryTrainerGAN:
 
         for i in range(self.config.gen_steps):
             self.model.gan_generator.zero_grad()
-            batched_sample_frame, target, lens = self.sample_gen_batch()
+            encoder_output, fake_batch = self.sample_gen_batch()
             if self.model.encoder.identity:
-                assert_one_hot(batched_sample_frame)
-                assert_as_target(batched_sample_frame, target)
+                assert_one_hot(encoder_output.data)
+                assert_as_target(encoder_output.data, fake_batch['alignment'])
 
-            fake_sample = self.model.gan_generator(batched_sample_frame)
+            compressed_fake_sample = self.model.gan_generator(
+                encoder_output.data)
+            fake_sample = compressed_fake_sample.repeat_interleave(
+                self.model.encoder.length_reduction,
+                dim=1
+            )
 
             fake_pred = self.model.gan_discriminator(fake_sample)
 
@@ -166,22 +156,22 @@ class SecondaryTrainerGAN:
             ) * self.config.gradient_penalty_ratio
             )
 
-            mask = get_mask1d(
-                lens,
-                self.config.max_sentence_length
-            ).to(torch.bool)
-            corrects = (target.long() == fake_sample.argmax(-1).long()).float()
-            stats['gan_accuracy/acc'] = corrects[mask].mean().item()
-            stats[
-                'gan_accuracy/acc_without_mask'
-            ] = corrects.mean().item()
-            stats['gan_accuracy/mask_coverage'] = mask.float().mean().item()
+            # mask = get_mask1d(
+            #     lens,
+            #     self.config.max_sentence_length
+            # ).to(torch.bool)
+            # corrects = (target.long() == fake_sample.argmax(-1).long()).float()
+            # stats['gan_accuracy/acc'] = corrects[mask].mean().item()
+            # stats[
+            #     'gan_accuracy/acc_without_mask'
+            # ] = corrects.mean().item()
+            # stats['gan_accuracy/mask_coverage'] = mask.float().mean().item()
 
         if show:
             for i in range(1):
                 self.printer.show(
                     fake_sample[i].argmax(-1).long(),
-                    target[i].long()
+                    fake_batch['alignment'][i].long()
                 )
             print('#' * self.printer.line_length)
 

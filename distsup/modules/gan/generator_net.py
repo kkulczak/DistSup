@@ -3,6 +3,7 @@ from torch import nn
 
 from distsup.modules.gan.data_types import GanConfig
 from distsup.modules.gan.utils import softmax_gumbel_noise
+from distsup.utils import safe_squeeze
 
 
 class LinearGeneratorNet(nn.Module):
@@ -39,6 +40,7 @@ class LinearGeneratorNet(nn.Module):
         )
 
     def forward(self, x: torch.Tensor, temperature: float = 0.9):
+        x = safe_squeeze(x, dim=2)
         batch_size, phrase_length, _ = x.shape
         x = x.reshape(
             batch_size * phrase_length,
@@ -63,11 +65,4 @@ class LinearGeneratorNet(nn.Module):
         )
         soft_prob = softmax_gumbel_noise(log_prob, temperature)
 
-        if self.gan_config.use_all_letters:
-            repeated = soft_prob.repeat_interleave(
-                self.encoder_length_reduction,
-                dim=1
-            )
-        else:
-            repeated = soft_prob
-        return repeated
+        return soft_prob

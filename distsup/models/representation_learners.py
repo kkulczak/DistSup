@@ -78,7 +78,9 @@ class RepresentationLearner(streamtokenizer.StreamTokenizerNet):
         reconstructor_field=None,
         side_info_encoder=None,
         bottleneck_cond=None,
-        **kwargs):
+        add_probes=True,
+        **kwargs,
+    ):
         super(RepresentationLearner, self).__init__(**kwargs)
         self.encoder = utils.construct_from_kwargs(
             encoder, additional_parameters={
@@ -157,7 +159,8 @@ class RepresentationLearner(streamtokenizer.StreamTokenizerNet):
             'as reconstructors there are.'
 
         self.input_layer = encoders.Identity()
-        self.add_probes()
+        if add_probes:
+            self.add_probes()
 
     def pad_features(self, batch):
         '''Pad x to a multiple of encoder's length reduction so that
