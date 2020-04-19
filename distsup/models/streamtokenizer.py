@@ -365,7 +365,7 @@ class StreamTokenizerNet(probednet.ProbedNet):
             alis_es = self._unpad_and_concat(alis_es, alis_lens)
             alis_gt = self._unpad_and_concat(alis_gt, alis_lens) if len(alis_gt) else None
 
-            scores_to_compute = [('id_filter', lambda x: x)]
+            scores_to_compute = [('all', lambda x: x)]
             if alis_gt is not None and self.pad_symbol is not None:
                 not_pad = (alis_gt != self.pad_symbol)
                 scores_to_compute.append(('nonpad_', lambda x: x[not_pad]))
