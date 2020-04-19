@@ -40,7 +40,7 @@ class TransformerDiscriminator(nn.Module):
                 nhead=8,
 
             ),
-            num_layers=6
+            num_layers=3
         )
 
         self.dense_input_size = (
