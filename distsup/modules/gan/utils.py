@@ -15,6 +15,8 @@ class LReluCustom(nn.Module):
     def forward(self, x):
         return torch.max(x, self.leak * x)
 
+def lrelu(x, leak=0.1):
+    return torch.max(x, leak * x)
 
 def softmax_gumbel_noise(
     logits: torch.Tensor,
