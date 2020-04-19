@@ -38,6 +38,7 @@ class TransformerDiscriminator(nn.Module):
             encoder_layer=transformer_encoder.TransformerEncoderLayer(
                 self.gan_config.dis_emb_size,
                 nhead=8,
+                dim_feedforward=1024
 
             ),
             num_layers=3

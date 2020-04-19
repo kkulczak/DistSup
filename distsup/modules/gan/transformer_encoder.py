@@ -5,6 +5,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from distsup.modules.gan import utils
+
+
 class TransformerEncoder(nn.Module):
     r"""TransformerEncoder is a stack of N encoder layers
 
@@ -91,7 +94,7 @@ class TransformerEncoderLayer(nn.Module):
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
 
-        self.activation = _get_activation_fn(activation)
+        self.activation = utils.lrelu
 
     def __setstate__(self, state):
         if 'activation' not in state:
