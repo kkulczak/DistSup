@@ -210,15 +210,15 @@ class StreamTokenizerNet(probednet.ProbedNet):
     def _clustering_metrics(ali_gt, ali_es, prefix=''):
         import sklearn.metrics
         return {
-            f'{prefix}adjusted_mutual_info':
+            f'adjusted_mutual_info/{prefix}':
                 sklearn.metrics.adjusted_mutual_info_score(ali_gt,
                                                            ali_es,
                                                            average_method='arithmetic'),
-            f'{prefix}normalized_mutual_info':
+            f'normalized_mutual_info/{prefix}':
                 sklearn.metrics.normalized_mutual_info_score(ali_gt,
                                                              ali_es,
                                                              average_method='arithmetic'),
-            f'{prefix}adjusted_rand_score':
+            f'adjusted_rand_score/{prefix}':
                 sklearn.metrics.adjusted_rand_score(ali_gt,
                                                     ali_es)
         }
@@ -238,7 +238,7 @@ class StreamTokenizerNet(probednet.ProbedNet):
 
         # TODO: add one-to-one mapping accuracy
 
-        return {f'{prefix}many_es_to_one_gt_accuracy': (alis_es_mapped == ali_gt).mean()}, mapping
+        return {f'many_es_to_one_gt_accuracy/{prefix}': (alis_es_mapped == ali_gt).mean()}, mapping
 
     @staticmethod
     def _perplexity_metrics(ali_es, prefix=''):
@@ -249,8 +249,8 @@ class StreamTokenizerNet(probednet.ProbedNet):
 
         perplexity = 2**(-np.sum(p * np.log2(p)))
 
-        return {f'{prefix}perplexity': perplexity,
-                f'{prefix}used_tokens': len(sym)}
+        return {f'perplexity/{prefix}': perplexity,
+                f'used_tokens/{prefix}': len(sym)}
 
     @staticmethod
     def _unpad_and_concat(alis, alis_len):
@@ -365,7 +365,7 @@ class StreamTokenizerNet(probednet.ProbedNet):
             alis_es = self._unpad_and_concat(alis_es, alis_lens)
             alis_gt = self._unpad_and_concat(alis_gt, alis_lens) if len(alis_gt) else None
 
-            scores_to_compute = [('', lambda x: x)]
+            scores_to_compute = [('id_filter', lambda x: x)]
             if alis_gt is not None and self.pad_symbol is not None:
                 not_pad = (alis_gt != self.pad_symbol)
                 scores_to_compute.append(('nonpad_', lambda x: x[not_pad]))
