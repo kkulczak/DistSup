@@ -167,6 +167,7 @@ def main():
     )
     Globals.objects_config = copy.deepcopy(config.objects_config)
     Globals.exp_uuid = get_uuid(args.save_dir)
+    Globals.debug = args.debug_skip_training
 
     train_data = config['Datasets']['train']
     eval_data = {

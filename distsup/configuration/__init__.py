@@ -141,6 +141,7 @@ class Globals(object):
     save_dir = None
     exp_uuid = None
     exp_config_fpath = None
+    debug = None
 
     # Track training progress. The trainer/loader will fill in proper values.
     epoch = -1

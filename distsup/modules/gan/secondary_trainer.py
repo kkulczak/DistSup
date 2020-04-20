@@ -12,7 +12,6 @@ from distsup.modules.gan.data_types import EncoderOutput, GanConfig
 from distsup.modules.gan.utils import (AlignmentPrettyPrinter, assert_as_target,
                                        assert_one_hot,
                                        compute_gradient_penalty, )
-from distsup.utils import get_mask1d
 
 
 class SecondaryTrainerGAN:
@@ -29,6 +28,14 @@ class SecondaryTrainerGAN:
         # self.vanilla_dataloader = deepcopy(train_dataloader)
         self.vanilla_dataloader = train_dataloader
         self.dataloader_iter = iter(self.vanilla_dataloader)
+        if Globals.debug:
+            self.alignments = None
+        else:
+            self.alignments = torch.cat(
+                [batch['alignment'] for batch in train_dataloader],
+                dim=0,
+            )
+
         self.config = config
         self.data_manipulator = GanConcatedWindowsDataManipulation(
             gan_config=config,
@@ -55,10 +62,19 @@ class SecondaryTrainerGAN:
             return next(self.dataloader_iter)
 
     def sample_real_batch(self, device: str = 'cpu'):
-        batch = self.sample_vanilla_batch()
+        if Globals.debug:
+            batch = self.sample_vanilla_batch()
+            alignment = batch['alignment']
+        else:
+            batch = {}
+            idx = torch.randint(
+                high=self.alignments.shape[0],
+                size=(self.vanilla_dataloader.batch_size,),
+            )
+            alignment = self.alignments[idx]
 
         real_sample = F.one_hot(
-            batch['alignment'].long(),
+            alignment.long(),
             num_classes=self.config.dictionary_size
         ).float()
         if Globals.cuda:
@@ -95,11 +111,12 @@ class SecondaryTrainerGAN:
                 assert_one_hot(encoder_output.data)
                 assert_as_target(encoder_output.data, fake_batch['alignment'])
 
-            compressed_fake_sample = self.model.gan_generator(encoder_output.data)
+            compressed_fake_sample = self.model.gan_generator(
+                encoder_output.data)
             fake_sample = compressed_fake_sample.repeat_interleave(
-                    self.model.encoder.length_reduction,
-                    dim=1
-                )
+                self.model.encoder.length_reduction,
+                dim=1
+            )
 
             fake_pred = self.model.gan_discriminator(fake_sample)
             real_pred = self.model.gan_discriminator(real_sample)
@@ -160,7 +177,8 @@ class SecondaryTrainerGAN:
             #     lens,
             #     self.config.max_sentence_length
             # ).to(torch.bool)
-            # corrects = (target.long() == fake_sample.argmax(-1).long()).float()
+            # corrects = (target.long() == fake_sample.argmax(-1).long(
+            # )).float()
             # stats['gan_accuracy/acc'] = corrects[mask].mean().item()
             # stats[
             #     'gan_accuracy/acc_without_mask'
