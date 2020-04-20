@@ -373,7 +373,7 @@ class StreamTokenizerNet(probednet.ProbedNet):
             if alis_gt is not None and alis_es.min() < 0:
                 not_pad2 = (alis_es != -1)
                 scores_to_compute.append(('validtokens_', lambda x: x[not_pad2]))
-
+            all_scores.update(acc=(alis_es == alis_gt).mean())
             for prefix, ali_filter in scores_to_compute:
                 es = ali_filter(alis_es)
 

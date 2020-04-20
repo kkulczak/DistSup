@@ -313,6 +313,7 @@ class FramewisePredictor(nn.Module):
             )
 
         hidden = self(self.input)
+        hidden_tokens = hidden.argmax(dim=3, keepdim=True)
         feat_aligned_len = features.shape[1]
         hidden_aligned_len = hidden.shape[1]
 
@@ -356,7 +357,12 @@ class FramewisePredictor(nn.Module):
                 "framewise_debug",
                 self.plot(features, F.softmax(hidden.detach(), dim=-1))
             )
-        details = {"loss": loss, "acc": acc, "out_seq": pred_labels.detach()}
+        details = {
+            "loss": loss,
+            "acc": acc,
+            "out_seq": pred_labels.detach(),
+            "tokens": hidden_tokens.detach(),
+        }
         return loss, details
 
 
