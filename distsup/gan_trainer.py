@@ -272,10 +272,9 @@ class TrainerForGan(object):
             lr_scheduler.step()
 
         for batch_ind, (batch, _) in enumerate(
-            zip(
-                train_dataset,
-                range(1) if self.skip_training else itertools.count()
-            )
+                train_dataset
+                if self.distsup_training
+                else [({}, None) for _ in range(data_len)],
         ):
             self.current_iteration += 1
             Globals.current_iteration = self.current_iteration

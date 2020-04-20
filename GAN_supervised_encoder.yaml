@@ -65,7 +65,7 @@ Model:
     class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
     gan_config: True
   gan_discriminator:
-    class_name: distsup.modules.gan.discriminator_maxpool.MaxPoolDiscriminator
+    class_name: distsup.modules.gan.discriminator_transformer.TransformerDiscriminator
 
     gan_config: True
 
@@ -106,7 +106,7 @@ gan_config:
   use_all_letters: True
   # Discriminator part
   dis_steps: 3
-  dis_emb_size: 128
+  dis_emb_size: 256
   dis_hidden_1_size: 256
   dis_hidden_2_size: 256
   dis_learning_rate: 0.002
