@@ -104,7 +104,7 @@ class SecondaryTrainerGAN:
             real_sample, real_batch = self.sample_real_batch()
             if self.model.encoder.identity:
                 assert_one_hot(real_sample)
-                assert_as_target(real_sample, real_batch['alignment'])
+                # assert_as_target(real_sample, real_batch['alignment'])
 
             encoder_output, fake_batch = self.sample_gen_batch()
             if self.model.encoder.identity:
