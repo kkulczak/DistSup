@@ -10,34 +10,24 @@ from distsup.modules.gan import transformer_encoder
 from distsup.modules.gan.data_types import GanConfig
 
 
-class PositionalEncoder(nn.Module):
-    def __init__(self, d_model, max_seq_len=80):
-        super().__init__()
+class PositionalEncoding(nn.Module):
+
+    def __init__(self, d_model, dropout=0.1, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
         self.d_model = d_model
-
-        # create constant 'pe' matrix with values dependant on
-        # pos and i
-        pe = torch.zeros(max_seq_len, d_model)
-        for pos in range(max_seq_len):
-            for i in range(0, d_model, 2):
-                pe[pos, i] = \
-                    math.sin(pos / (10000 ** ((2 * i) / d_model)))
-                pe[pos, i + 1] = \
-                    math.cos(pos / (10000 ** ((2 * (i + 1)) / d_model)))
-
-        pe = pe.unsqueeze(0)
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0).transpose(0, 1)
         self.register_buffer('pe', pe)
 
     def forward(self, x):
-        # make embeddings relatively larger
-        x = x * math.sqrt(self.d_model)
-        # add constant to embedding
-        seq_len = x.size(1)
-        x = x + Variable(
-            self.pe[:, :seq_len],
-            requires_grad=False
-        ).cuda()
-        return x
+        x *= math.sqrt(self.d_model)
+        x = x + self.pe[:x.size(0), :]
+        return self.dropout(x)
 
 
 class TransformerDiscriminator(nn.Module):
@@ -56,9 +46,9 @@ class TransformerDiscriminator(nn.Module):
         )
 
 
-        self.positional_embeddings = PositionalEncoder(
+        self.positional_embeddings = PositionalEncoding(
             d_model=self.gan_config.dis_emb_size,
-            max_seq_len=self.gan_config.max_sentence_length,
+            max_len=self.gan_config.max_sentence_length,
         )
         ################################################################
         # Weights initialization with xavier values in embedding matrix
@@ -95,9 +85,12 @@ class TransformerDiscriminator(nn.Module):
 
         transformer_out = self.transformer(pos_enc)
 
-        mean = transformer_out.mean(dim=1)
+        y = F.max_pool1d(
+            transformer_out.transpose(2, 1),
+            kernel_size=self.gan_config.max_sentence_length,
+        )
 
-        dense_input = mean.view(
+        dense_input = y.view(
             batch_size, self.dense_input_size
         )
 
