@@ -53,7 +53,7 @@ class TransformerDiscriminator(nn.Module):
 
         transformer_out = self.transformer(x)
 
-        y = transformer_out[:, -1, :]
+        y = transformer_out.mean(dim=1)
 
         dense_input = y.view(
             batch_size, self.dense_input_size
