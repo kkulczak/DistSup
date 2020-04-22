@@ -39,7 +39,7 @@ class TransformerDiscriminator(nn.Module):
             # nhead=2,
             nhid=self.gan_config.dis_hidden_1_size,
             # nlayers=2,
-            # dropout=0.2,
+            dropout=0.0,
         )
 
         self.dense_input_size = (

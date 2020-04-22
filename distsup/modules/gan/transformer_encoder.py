@@ -163,7 +163,7 @@ class TransformerEncoderLayer(nn.Module):
 
     def __setstate__(self, state):
         if 'activation' not in state:
-            state['activation'] = F.relu
+            state['activation'] = utils.lrelu
         super(TransformerEncoderLayer, self).__setstate__(state)
 
     def forward(self, src, src_mask=None, src_key_padding_mask=None):
