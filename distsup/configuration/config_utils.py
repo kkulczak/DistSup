@@ -13,9 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import copy
 import logging
@@ -42,8 +40,11 @@ class ConfigYamlLoader(yaml.FullLoader):
             filename = os.path.normpath(os.path.join(self._root, filename))
 
         if not os.path.isfile(filename):
-            logging.error(f'Could not find included yaml {path} in config file {self._stream_name}. '
-                          f'It searched both in the current working directory and in the directory of the yaml file.')
+            logging.error(
+                f'Could not find included yaml {path} in config file '
+                f'{self._stream_name}. '
+                f'It searched both in the current working directory and in '
+                f'the directory of the yaml file.')
             sys.exit(1)
 
         with open(filename, 'r') as f:
@@ -74,7 +75,8 @@ class ConfigParser:
 
     def apply_changes_in_config(self, config_dict, changes_dict):
         for key, value in changes_dict.items():
-            if key in config_dict and isinstance(value, dict) and isinstance(config_dict[key], dict):
+            if key in config_dict and isinstance(value, dict) and isinstance(
+                config_dict[key], dict):
                 self.apply_changes_in_config(config_dict[key], value)
             else:
                 config_dict[key] = value
@@ -104,13 +106,14 @@ class ConfigParser:
     def get_config(self, modify_dict={}):
         self.init_config_dict()
         config_dict = copy.deepcopy(self.root_config_dict)
-        #TODO something smarter should be done here
-        if config_dict.get('gan_config') is not None:
-            gan_config = config_dict['gan_config']
-            config_dict['Model']['gan_generator']['gan_config'] = copy.deepcopy(gan_config)
-            config_dict['Model']['gan_discriminator']['gan_config'] = copy.deepcopy(gan_config)
-            config_dict['Trainer']['gan_config'] = copy.deepcopy(gan_config)
-
         for path, value in modify_dict.items():
             self.modify_config_node(config_dict, path, value)
+        # TODO something smarter should be done here
+        if config_dict.get('gan_config') is not None:
+            gan_config = config_dict['gan_config']
+            config_dict['Model']['gan_generator']['gan_config'] = copy.deepcopy(
+                gan_config)
+            config_dict['Model']['gan_discriminator'][
+                'gan_config'] = copy.deepcopy(gan_config)
+            config_dict['Trainer']['gan_config'] = copy.deepcopy(gan_config)
         return config_dict
