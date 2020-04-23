@@ -179,7 +179,7 @@ class GanConcatedWindowsDataManipulation:
         batched_sample_frame[~mask] = torch.eye(
             data_size,
             device=batched_sample_frame.device
-        )[0].repeat(self.windows_size)
+        )[0].repeat(self.windows_size if not force_single_concat_window else 1)
 
         return GanBatch(
             **dataclasses.asdict(gan_alignment),
