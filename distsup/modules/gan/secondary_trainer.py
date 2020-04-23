@@ -28,6 +28,11 @@ class SecondaryTrainerGAN:
         # self.vanilla_dataloader = deepcopy(train_dataloader)
         self.vanilla_dataloader = train_dataloader
         self.dataloader_iter = iter(self.vanilla_dataloader)
+        self.config = config
+        self.data_manipulator = GanConcatedWindowsDataManipulation(
+            gan_config=config,
+            encoder_length_reduction=self.model.encoder.length_reduction,
+        )
         if Globals.debug:
             self.alignments = None
         else:
@@ -38,12 +43,6 @@ class SecondaryTrainerGAN:
             self.gan_alignments = self.data_manipulator.extract_alignment_data(
                 self.alignments
             )
-
-        self.config = config
-        self.data_manipulator = GanConcatedWindowsDataManipulation(
-            gan_config=config,
-            encoder_length_reduction=self.model.encoder.length_reduction,
-        )
 
         self.optimizer_gen = optim.Adam(
             self.model.gan_generator.parameters(),
