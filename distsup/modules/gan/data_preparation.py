@@ -110,6 +110,7 @@ class GanConcatedWindowsDataManipulation:
         x: torch.Tensor,
         batch: Dict[str, torch.Tensor],
         auto_length: bool = True,
+        force_single_concat_window=False,
     ) -> GanBatch:
 
         alignment = batch['alignment'].cpu()
@@ -118,10 +119,13 @@ class GanConcatedWindowsDataManipulation:
             x = safe_squeeze(x, dim=2)
         batch_size, phrase_length, data_size = x.shape
 
-        indexer = self.generate_indexer(phrase_length)
-        windowed_x = x[:, indexer].view(
-            (batch_size, phrase_length, self.windows_size * data_size)
-        )
+        if force_single_concat_window:
+            windowed_x = x
+        else:
+            indexer = self.generate_indexer(phrase_length)
+            windowed_x = x[:, indexer].view(
+                (batch_size, phrase_length, self.windows_size * data_size)
+            )
 
         if self.use_all_letters:
             return GanBatch(

@@ -83,6 +83,7 @@ class SecondaryTrainerGAN:
             real_sample,
             batch={'alignment': alignment},
             auto_length=False,
+            force_single_concat_window=True,
         )
 
         if Globals.cuda:
