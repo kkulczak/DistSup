@@ -40,7 +40,7 @@ class LinearGeneratorNet(nn.Module):
         )
 
     def forward(self, x: torch.Tensor, temperature: float = 0.9):
-        x = safe_squeeze(x, dim=2)
+        # x = safe_squeeze(x, dim=2)
         batch_size, phrase_length, _ = x.shape
         x = x.reshape(
             batch_size * phrase_length,

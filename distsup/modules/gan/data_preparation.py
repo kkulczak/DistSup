@@ -1,16 +1,32 @@
+import dataclasses
 import logging
-from typing import Optional, Tuple
+from typing import Dict, Optional
 
 import numpy as np
 import torch
 
-from distsup.modules.gan.data_types import GanConfig
+from distsup.modules.gan.data_types import GanAlignment, GanBatch, GanConfig
 from distsup.utils import (
     rleEncode,
     safe_squeeze, )
 
 
 # DICT_SIZE = 70
+
+
+def align_gan_output(
+    x: torch.Tensor,
+    batch: GanBatch
+) -> torch.Tensor:
+    output = torch.zeros_like(batch.batch['alignment'])
+    for idx, (bnd, _range, _len) in enumerate(zip(
+        batch.train_bnd,
+        batch.train_bnd_range,
+        batch.lens
+    )):
+        for i in range(_len.item()):
+            output[idx, bnd[i]: bnd[i] + _range[i] + 1] = x[idx, i]
+    return output
 
 
 class GanConcatedWindowsDataManipulation:
@@ -26,6 +42,16 @@ class GanConcatedWindowsDataManipulation:
         self.dictionary_size = gan_config.dictionary_size
         self.use_all_letters = gan_config.use_all_letters
 
+    def to_cuda(self, batch: GanBatch) -> GanBatch:
+        return GanBatch(
+            target=batch.target.to('cuda'),
+            lens=batch.lens.to('cuda'),
+            train_bnd=batch.train_bnd.to('cuda'),
+            train_bnd_range=batch.train_bnd_range.to('cuda'),
+            data=batch.data.to('cuda'),
+            batch=batch.batch
+        )
+
     def generate_indexer(self, phrase_length) -> torch.tensor:
         concat_window_indexes = (
             (np.arange(self.windows_size) - self.windows_size // 2)[None, :]
@@ -37,8 +63,14 @@ class GanConcatedWindowsDataManipulation:
         ] = phrase_length - 1
         return concat_window_indexes
 
-    def extract_alignment_data(self, alignment, length=None):
-        if length is None:
+    def extract_alignment_data(
+        self,
+        alignment: torch.Tensor,
+        auto_length: bool = True,
+    ) -> GanAlignment:
+        if auto_length:
+            length = 200
+        else:
             length = self.max_sentence_length
         train_bnd = torch.zeros(
             (alignment.shape[0], length),
@@ -62,18 +94,28 @@ class GanConcatedWindowsDataManipulation:
             train_bnd[i, :_len] = rle[:, 0]
             train_bnd_range[i, :_len] = rle[:, 1] - rle[:, 0]
             target[i, :_len] = values
-        return train_bnd, train_bnd_range, target, lens
+        if auto_length:
+            longest_phrase = lens.max().item()
+        else:
+            longest_phrase = self.max_sentence_length
+        return GanAlignment(
+            train_bnd=train_bnd[:, :longest_phrase],
+            train_bnd_range=train_bnd_range[:, :longest_phrase],
+            target=target[:, :longest_phrase],
+            lens=lens,
+        )
 
     def prepare_gan_batch(
         self,
         x: torch.Tensor,
-        alignment: torch.Tensor,
-        length=None,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        batch: Dict[str, torch.Tensor],
+        auto_length: bool = True,
+    ) -> GanBatch:
 
-        if length is None:
-            length = self.max_sentence_length
-        x = safe_squeeze(x, dim=2)
+        alignment = batch['alignment'].cpu()
+
+        if len(x.shape) != 3:
+            x = safe_squeeze(x, dim=2)
         batch_size, phrase_length, data_size = x.shape
 
         indexer = self.generate_indexer(phrase_length)
@@ -82,13 +124,18 @@ class GanConcatedWindowsDataManipulation:
         )
 
         if self.use_all_letters:
-            lens = torch.full(
-                (batch_size,),
-                fill_value=windowed_x.shape[1],
-                dtype=torch.long
+            return GanBatch(
+                target=alignment,
+                lens=torch.full(
+                    (batch_size,),
+                    fill_value=windowed_x.shape[1],
+                    dtype=torch.long
+                ),
+                train_bnd=torch.Tensor(0.),
+                train_bnd_range=torch.Tensor(0.),
+                data=windowed_x,
+                batch=batch,
             )
-            target = alignment
-            return windowed_x, target, lens
 
         expanded_x = torch.repeat_interleave(
             windowed_x,
@@ -96,11 +143,12 @@ class GanConcatedWindowsDataManipulation:
             dim=1
         )
 
-        train_bnd, train_bnd_range, target, lens = self.extract_alignment_data(
+        gan_alignment = self.extract_alignment_data(
             alignment,
-            length=length
+            auto_length=auto_length,
         )
 
+        length = gan_alignment.target.shape[1]
         random_pick = torch.clamp(
             (torch.randn(
                 batch_size * self.repeat,
@@ -111,8 +159,9 @@ class GanConcatedWindowsDataManipulation:
         )
 
         sample_frame_ids = (
-            train_bnd.repeat(self.repeat, 1).float()
-            + random_pick * train_bnd_range.repeat(self.repeat, 1).float()
+            gan_alignment.train_bnd.repeat(self.repeat, 1).float()
+            + random_pick * gan_alignment.train_bnd_range.repeat(self.repeat,
+                                                                 1).float()
         ).long()
 
         batched_sample_frame = expanded_x.repeat(self.repeat, 1, 1)[
@@ -121,11 +170,15 @@ class GanConcatedWindowsDataManipulation:
         ]
 
         mask = (
-            torch.arange(length)[None, :] < lens[:, None]
+            torch.arange(length)[None, :] < gan_alignment.lens[:, None]
         ).repeat(self.repeat, 1)
         batched_sample_frame[~mask] = torch.eye(
             data_size,
             device=batched_sample_frame.device
         )[0].repeat(self.windows_size)
 
-        return batched_sample_frame, target, lens
+        return GanBatch(
+            **dataclasses.asdict(gan_alignment),
+            data=batched_sample_frame,
+            batch=batch,
+        )

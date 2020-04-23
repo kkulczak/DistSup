@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Dict, Optional, Union
 
 import torch
 
@@ -8,7 +9,6 @@ class GanConfig:
     concat_window: int
     dictionary_size: int
     max_sentence_length: int
-    eval_sentence_length: int
     repeat: int
     gradient_penalty_ratio: float
     # Discriminator
@@ -24,7 +24,22 @@ class GanConfig:
     # Optional
     use_all_letters: bool = False
 
+
 @dataclass
 class EncoderOutput:
     data: torch.Tensor
     lens: torch.Tensor
+
+
+@dataclass
+class GanAlignment:
+    target: torch.Tensor
+    lens: torch.Tensor
+    train_bnd: torch.Tensor
+    train_bnd_range: torch.Tensor
+
+
+@dataclass
+class GanBatch(GanAlignment):
+    data: torch.Tensor
+    batch: Dict[str, torch.Tensor]

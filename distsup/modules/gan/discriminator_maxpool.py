@@ -73,25 +73,15 @@ class MaxPoolDiscriminator(nn.Module):
             nn.MaxPool1d(2, stride=2),
             nn.Conv1d(
                 in_channels=512,
-                out_channels=256,
+                out_channels=512,
                 kernel_size=3,
                 padding=1,
             ),
             utils.LReluCustom(),
-            nn.MaxPool1d(2, stride=2),
-            nn.Conv1d(
-                in_channels=256,
-                out_channels=256,
-                kernel_size=3,
-                padding=1,
-            ),
-            utils.LReluCustom(),
-            nn.MaxPool1d(2, stride=2),
-
         )
         self.dense_input_size = (
-            256 *
-            self.gan_config.max_sentence_length // (2 ** 5)
+            512 *
+            self.gan_config.max_sentence_length // (2 ** 3)
         )
         self.dense = nn.Linear(self.dense_input_size, 1)
 

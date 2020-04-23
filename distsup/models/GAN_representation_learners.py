@@ -1,28 +1,15 @@
-import copy
-from typing import Dict, Tuple
-
-import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 
 from distsup import (
     utils,
-    scoring, )
-from distsup.logger import default_tensor_logger
-from distsup.models import streamtokenizer
-from distsup.models.representation_learners import RepresentationLearner
-from distsup.modules import (
-    bottlenecks,
-    convolutional,
-    encoders,
-    reconstructors,
 )
+from distsup.logger import default_tensor_logger
+from distsup.models.representation_learners import RepresentationLearner
 from distsup.modules.gan.data_preparation import \
-    GanConcatedWindowsDataManipulation
+    (GanConcatedWindowsDataManipulation, align_gan_output, )
 from distsup.modules.gan.data_types import EncoderOutput, GanConfig
-from distsup.modules.gan.utils import assert_one_hot, assert_as_target
-from distsup.utils import get_mask1d, safe_squeeze
+from distsup.modules.gan.utils import assert_as_target, assert_one_hot
 
 logger = default_tensor_logger.DefaultTensorLogger()
 
@@ -74,67 +61,6 @@ class GanRepresentationLearner(RepresentationLearner):
         self.printer = None
         self.add_probes()
 
-    def deprecated_evaluate(self, batches):
-        probe_acc = []
-        acc = []
-        acc_no_padding = []
-        mask_coverage = []
-        first_batch = None
-        for batch in batches:
-            if first_batch is None:
-                first_batch = copy.deepcopy(batch)
-
-            loss, stats, torch_tokens = self.minibatch_loss_and_tokens(
-                batch,
-                train_model=False
-            )
-            if self.gan_data_manipulator.use_all_letters:
-                lens: np.ndarray = batch['alignment_len'].cpu().numpy()
-            else:
-                lens: np.ndarray = stats['lens'].cpu().numpy()
-            target: np.ndarray = stats['target'].cpu().int().numpy()
-            tokens: np.ndarray = (
-                torch_tokens.cpu().int().numpy()[:, :target.shape[1]]
-            )
-            mask = get_mask1d(
-                torch.from_numpy(lens),
-                mask_length=target.shape[1]
-            ).to(torch.bool).numpy()
-            correct = (tokens == target)
-            acc.append(correct[mask].mean())
-            acc_no_padding.append(correct.mean())
-            mask_coverage.append(mask.mean())
-
-            # probe stats
-            if 'enc_sup' in self.probes.keys():
-                encoder_output = stats['encoder_output']
-                probe_pred = safe_squeeze(
-                    self.probes['enc_sup'](encoder_output.data),
-                    dim=2,
-                )
-                res_pred = probe_pred.repeat_interleave(
-                    self.encoder.length_reduction,
-                    dim=1
-                )
-                probe_tokens = res_pred.argmax(dim=2)[:, :target.shape[1]]
-                probe_acc.append(
-                    (target == probe_tokens.cpu().numpy())[mask].mean()
-                )
-
-        for i in range(3):
-            self.printer.show(
-                torch.from_numpy(tokens[i]),
-                stats['target'][i],
-            )
-        print('#' * self.printer.line_length)
-        return {
-            'gan_accuracy/acc': np.array(acc).mean(),
-            'gan_accuracy/acc_without_mask': np.array(acc_no_padding).mean(),
-            'gan_accuracy/probe': np.array(probe_acc).mean(),
-            'gan_accuracy/mask_coverage': np.array(mask_coverage).mean()
-
-        }
-
     def conditioning(self, x, x_len, bottleneck_cond=None):
         """x: N x W x H x C
         """
@@ -150,8 +76,8 @@ class GanRepresentationLearner(RepresentationLearner):
         conds = (self.latent_mixer(quant),)
         return (
             EncoderOutput(data=enc, lens=enc_len),
-            tuple(),    # conds,
-            {},     # info
+            tuple(),  # conds,
+            {},  # info
         )
 
     def minibatch_loss_and_tokens(
@@ -193,10 +119,20 @@ class GanRepresentationLearner(RepresentationLearner):
             assert_one_hot(encoder_output.data)
             assert_as_target(encoder_output.data, batch['alignment'])
 
-        gen_output: torch.Tensor = self.gan_generator(encoder_output.data)
-        tokens = gen_output.argmax(dim=-1).unsqueeze(dim=2).unsqueeze(dim=3)
+        gan_batch = self.gan_data_manipulator.prepare_gan_batch(
+            encoder_output.data,
+            batch,
+            auto_length=True,
+        )
+        gen_output: torch.Tensor = self.gan_generator(gan_batch.data)
+        tokens = gen_output.argmax(dim=-1)
+        tokens_aligned = align_gan_output(
+            tokens,
+            gan_batch
+        ).unsqueeze(dim=2).unsqueeze(dim=3)
         return (
-            torch.tensor(0., requires_grad=True, device=feats.device),   #rec_loss,
-            {},                                     #details,
-            tokens
+            torch.tensor(0., requires_grad=True, device=feats.device),
+                # rec_loss,
+            {},  # details,
+            tokens_aligned
         )
