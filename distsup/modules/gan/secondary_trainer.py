@@ -12,6 +12,7 @@ from distsup.modules.gan.data_types import EncoderOutput, GanBatch, GanConfig
 from distsup.modules.gan.utils import (AlignmentPrettyPrinter, assert_as_target,
                                        assert_one_hot,
                                        compute_gradient_penalty, )
+from distsup.utils import get_mask1d
 
 
 class SecondaryTrainerGAN:
@@ -154,8 +155,8 @@ class SecondaryTrainerGAN:
             self.optimizer_dis.step()
 
             stats['gan_metrics/gradient_penalty'] = gradient_penalty.item()
-            stats['gan_scores/real'] = real_score.item()
-            stats['gan_losses/dis'] = dis_loss.item()
+            stats['gan_metrics/real'] = real_score.item()
+            stats['loss/gan_discriminator'] = dis_loss.item()
 
         for i in range(self.config.gen_steps):
             self.model.gan_generator.zero_grad()
@@ -178,28 +179,24 @@ class SecondaryTrainerGAN:
             gen_loss.backward()
             self.optimizer_gen.step()
 
-            stats['gan_scores/fake'] = fake_score.item()
-            stats['gan_losses/gen'] = gen_loss.item()
-            stats['gan_scores/diff_abs'] = (
+            stats['gan_metrics/fake'] = fake_score.item()
+            stats['loss/gan_generator'] = gen_loss.item()
+            stats['gan_metrics/diff_abs'] = (
                 fake_score.item() - real_score.item()
             )
-            stats['gp_impact'] = (
+            stats['gan_metrics/gp_impact'] = (
                 gradient_penalty.item() / (
                 dis_loss.item()
             ) * self.config.gradient_penalty_ratio
             )
 
-            # mask = get_mask1d(
-            #     lens,
-            #     self.config.max_sentence_length
-            # ).to(torch.bool)
-            # corrects = (target.long() == fake_sample.argmax(-1).long(
-            # )).float()
-            # stats['gan_accuracy/acc'] = corrects[mask].mean().item()
-            # stats[
-            #     'gan_accuracy/acc_without_mask'
-            # ] = corrects.mean().item()
-            # stats['gan_accuracy/mask_coverage'] = mask.float().mean().item()
+        mask = get_mask1d(
+            fake_batch.lens,
+            self.config.max_sentence_length
+        ).to(torch.bool)
+        corrects = (fake_batch.target.long() == fake_sample.argmax(-1).long(
+        )).float()
+        stats['acc/gan_train_batch'] = corrects[mask].mean().item()
 
         if show:
             for i in range(1):
