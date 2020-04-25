@@ -23,6 +23,7 @@ class GanConfig:
     gen_learning_rate: float
     # Optional
     use_all_letters: bool = False
+    dis_maxpool_reduction: int = 1
 
 
 @dataclass

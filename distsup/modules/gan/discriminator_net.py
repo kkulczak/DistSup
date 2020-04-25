@@ -34,52 +34,52 @@ class DiscriminatorNet(nn.Module):
         self.conv_n_feature_1 = self.gan_config.dis_emb_size
         self.conv_3_1 = nn.Conv1d(
             self.conv_n_feature_1,
-            self.gan_config.dis_hidden_1_size,
+            self.gan_config.dis_hidden_1_size // 4,
             kernel_size=3,
             padding=1,
         )
         self.conv_5_1 = nn.Conv1d(
             self.conv_n_feature_1,
-            self.gan_config.dis_hidden_1_size,
+            self.gan_config.dis_hidden_1_size // 4,
             kernel_size=5,
             padding=2,
         )
         self.conv_7_1 = nn.Conv1d(
             self.conv_n_feature_1,
-            self.gan_config.dis_hidden_1_size,
+            self.gan_config.dis_hidden_1_size // 4,
             kernel_size=7,
             padding=3,
         )
         self.conv_9_1 = nn.Conv1d(
             self.conv_n_feature_1,
-            self.gan_config.dis_hidden_1_size,
+            self.gan_config.dis_hidden_1_size // 4,
             kernel_size=9,
             padding=4,
         )
         self.lrelu_1 = LReluCustom(leak=0.1)
 
-        self.conv_n_feature_2 = self.gan_config.dis_hidden_1_size * 4
+        self.conv_n_feature_2 = self.gan_config.dis_hidden_1_size
         self.conv_3_2 = nn.Conv1d(
             self.conv_n_feature_2,
-            self.gan_config.dis_hidden_2_size,
+            self.gan_config.dis_hidden_2_size // 4,
             kernel_size=3,
             padding=1,
         )
         self.conv_5_2 = nn.Conv1d(
             self.conv_n_feature_2,
-            self.gan_config.dis_hidden_2_size,
+            self.gan_config.dis_hidden_2_size // 4,
             kernel_size=3,
             padding=1,
         )
         self.conv_7_2 = nn.Conv1d(
             self.conv_n_feature_2,
-            self.gan_config.dis_hidden_2_size,
+            self.gan_config.dis_hidden_2_size // 4,
             kernel_size=3,
             padding=1,
         )
         self.conv_9_2 = nn.Conv1d(
             self.conv_n_feature_2,
-            self.gan_config.dis_hidden_2_size,
+            self.gan_config.dis_hidden_2_size // 4,
             kernel_size=3,
             padding=1,
         )
@@ -87,7 +87,7 @@ class DiscriminatorNet(nn.Module):
         self.lrelu_2 = LReluCustom(leak=0.1)
 
         self.dense_input_size = (
-            self.gan_config.dis_hidden_2_size * 4
+            self.gan_config.dis_hidden_2_size
             * self.gan_config.max_sentence_length
         )
         self.dense = nn.Sequential(

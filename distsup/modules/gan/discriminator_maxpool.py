@@ -1,9 +1,15 @@
+import math
+
 import torch
 from torch import nn
 
 # from src.utils import LReluCustom
 from distsup.modules.gan import utils
 from distsup.modules.gan.data_types import GanConfig
+
+
+def next_power_of_2(x):
+    return 1 if x == 0 else 2 ** math.ceil(math.log2(x))
 
 
 class MaxPoolDiscriminator(nn.Module):
@@ -44,58 +50,50 @@ class MaxPoolDiscriminator(nn.Module):
         #
         # ])
 
-        self.num_reducing_layers = 4
-        dim = 512
-        self.reducing_convs = nn.Sequential(
-            nn.Conv1d(
-                in_channels=self.gan_config.dis_emb_size,
-                out_channels=1024,
+        num_maxpools = int(math.log2(self.gan_config.dis_maxpool_reduction))
+
+        def conv(in_channels, out_channels):
+            return nn.Conv1d(
+                in_channels=in_channels,
+                out_channels=out_channels,
                 kernel_size=3,
                 padding=1,
-            ),
+            )
+
+        channels = [
+            (self.gan_config.dis_emb_size, self.gan_config.dis_hidden_1_size)
+        ]
+
+        reducing_modules = [
+            conv(*channels[0]),
             utils.LReluCustom(),
-            nn.MaxPool1d(2, stride=2),
-            nn.Conv1d(
-                in_channels=1024,
-                out_channels=512,
-                kernel_size=3,
-                padding=1,
-            ),
-            utils.LReluCustom(),
-            nn.MaxPool1d(2, stride=2),
-            nn.Conv1d(
-                in_channels=512,
-                out_channels=512,
-                kernel_size=3,
-                padding=1,
-            ),
-            utils.LReluCustom(),
-            nn.MaxPool1d(2, stride=2),
-            nn.Conv1d(
-                in_channels=512,
-                out_channels=512,
-                kernel_size=3,
-                padding=1,
-            ),
-            utils.LReluCustom(),
+        ]
+
+        channels_per_module = next_power_of_2(
+            self.gan_config.dis_hidden_2_size // num_maxpools
         )
+        for i in range(num_maxpools):
+            ch = (channels[-1][1], channels_per_module)
+            reducing_modules.extend([
+                nn.MaxPool1d(2, stride=2),
+                conv(*ch),
+                utils.LReluCustom(),
+            ])
+            channels.append(ch)
+
+        self.reducing_convs = nn.Sequential(*reducing_modules)
         self.dense_input_size = (
-            512 *
-            self.gan_config.max_sentence_length // (2 ** 3)
+            channels_per_module
+            * self.gan_config.max_sentence_length
+            // self.gan_config.dis_maxpool_reduction
         )
         self.dense = nn.Linear(self.dense_input_size, 1)
-
 
     def forward(self, x):
         batch_size, phrase_length, element_size = x.shape
         x = torch.matmul(x, self.embeddings.weight)
 
         conv1d_input = x.transpose(2, 1)
-        # convs_1 = [utils.lrelu(conv(conv1d_input)) for conv in self.convs1]
-        # convs_1_out = torch.cat(
-        #     convs_1,
-        #     dim=1,
-        # )
 
         reduced_conv = self.reducing_convs(conv1d_input)
 

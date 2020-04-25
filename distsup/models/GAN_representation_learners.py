@@ -37,6 +37,7 @@ class GanRepresentationLearner(RepresentationLearner):
         )
 
         # Gan definitions section
+        self.gan_config = GanConfig(**gan_generator['gan_config'])
         if gan_generator is None:
             self.gan_generator = gan_generator
         else:
@@ -48,7 +49,7 @@ class GanRepresentationLearner(RepresentationLearner):
                 }
             )
             self.gan_data_manipulator = GanConcatedWindowsDataManipulation(
-                gan_config=GanConfig(**gan_generator['gan_config']),
+                gan_config=self.gan_config,
                 encoder_length_reduction=self.encoder.length_reduction,
             )
         if gan_discriminator is None:
@@ -60,6 +61,15 @@ class GanRepresentationLearner(RepresentationLearner):
 
         self.printer = None
         self.add_probes()
+        print(self.gan_generator)
+        print(self.gan_discriminator)
+        print(
+            f'Dis length reduction: {self.gan_config.max_sentence_length} => '
+            f'''{
+            self.gan_config.max_sentence_length
+            // self.gan_config.dis_maxpool_reduction
+            }'''
+        )
 
     def conditioning(self, x, x_len, bottleneck_cond=None):
         """x: N x W x H x C

@@ -14,7 +14,7 @@ class MaxPoolDiscriminator(nn.Module):
         super(MaxPoolDiscriminator, self).__init__()
         self.gan_config = GanConfig(**gan_config)
         self.conv_n_feature_1 = self.gan_config.dis_emb_size
-        self.conv_n_feature_2 = self.gan_config.dis_hidden_1_size * 4
+        self.conv_n_feature_2 = self.gan_config.dis_hidden_1_size
 
         self.embeddings = nn.Embedding(
             num_embeddings=self.gan_config.dictionary_size,
