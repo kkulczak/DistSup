@@ -13,8 +13,8 @@ __pycache__
 .nfs*
 
 # Experiments
-runs/*
-data/*
+runs
+data
 
 # GUIs
 .project
@@ -23,3 +23,4 @@ data/*
 .vscode
 /enc_batch_transform.ipynb
 .idea
+55_sup_enc.pkl
