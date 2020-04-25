@@ -10,7 +10,7 @@ Datasets:
         alignment_root: "data/scribblelens.paths.1.4b.zip"
         vocabulary: egs/scribblelens/tasman.alphabet.plus.space.mode5.json
 #        alignment_mod: 7
-      chunk_len: 96
+      chunk_len: 128
       training: true
       varlen_fields: [image, alignment]
       drop_fields: [
@@ -49,7 +49,7 @@ Model:
     num_dilated: 2
     num_postdil: 3
 # Tą flagą zamieniam ConvStack1D w identyczność nie tracąc kompatybilności wstecznej
-    identity: False
+    identity: True
   reconstructor:
     class_name: distsup.modules.reconstructors.NullReconstructor
   aux_heads:
@@ -65,7 +65,7 @@ Model:
     class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
     gan_config: True
   gan_discriminator:
-    class_name: distsup.modules.gan.discriminator_maxpool.MaxPoolDiscriminator
+    class_name: distsup.modules.gan.discriminator_net.DiscriminatorNet
 
     gan_config: True
 
@@ -80,7 +80,7 @@ Trainer:
     factor: 0.5
     patience: 2
   output_frequency: 20
-  num_epochs: 40
+  num_epochs: 20
   optimizer_name: Adam
   distsup_training: False
 
@@ -99,7 +99,7 @@ gan_config:
   dictionary_size: 68
 # Tutaj definiujemy długość wyjścia z encodera
 # Jeżeli alignment zawiera więcej literek, to po prostu przycinam tą ilość
-  max_sentence_length: 24
+  max_sentence_length: 32
 # waga dla gp_penalty Chińskiego GANa
   gradient_penalty_ratio: 10.0
   use_all_letters: False
@@ -108,9 +108,10 @@ gan_config:
   dis_emb_size: 256
   dis_hidden_1_size: 256
   dis_hidden_2_size: 256
+  dis_maxpool_reduction: 8
   dis_learning_rate: 0.002
   # Generator part
   gen_steps: 1
-  gen_hidden_size: 512
+  gen_hidden_size: 128
   gen_learning_rate: 0.001
   
