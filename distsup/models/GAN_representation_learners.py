@@ -1,8 +1,11 @@
+import copy
+
+import numpy as np
 import torch
 import torch.nn.functional as F
 
 from distsup import (
-    utils,
+    scoring, utils,
 )
 from distsup.logger import default_tensor_logger
 from distsup.models.representation_learners import RepresentationLearner
@@ -90,6 +93,181 @@ class GanRepresentationLearner(RepresentationLearner):
             {},  # info
         )
 
+    def evaluate(self, batches):
+        tot_examples = 0.
+        tot_loss = 0.
+        tot_detached_probesloss = 0.
+        tot_backprop_probesloss = 0.
+        tot_errs = 0.
+
+        gan_es = []
+        gan_gt = []
+        gan_lens = []
+        alis_es = []
+        alis_gt = []
+        alis_lens = []
+        total_stats = {}
+
+        first_batch = None
+
+        for batch in batches:
+            if first_batch is None:
+                first_batch = copy.deepcopy(batch)
+
+            num_examples = batch['features'].shape[0]
+            loss, stats, tokens = self.minibatch_loss_and_tokens(batch)
+
+            # Run the probes
+            detached_loss, backprop_loss, probes_details = self.probes_loss(
+                batch)
+            stats.update(probes_details)
+            ### AWEFULL INJECTION
+            # if tokens.squeeze().shape != probes_details[
+            # 'enc_sup_out_seq'].shape:
+            #     print(
+            #         tokens.squeeze().shape,
+            #         probes_details['enc_sup_out_seq'].shape
+            #     )
+            #     breakpoint()
+            ## INJECTION
+            # tokens = probes_details['enc_sup_tokens']
+
+            if 'gan_tokens' in stats and 'gan_batch' in stats:
+                gan_es.append(stats['gan_tokens'])
+                gan_gt.append(stats['gan_batch'].target)
+                gan_lens.append(stats['gan_batch'].lens)
+
+            if tokens is not None:
+                # Tokens should be in layout B x W x 1 x 1
+                tokens = utils.safe_squeeze(tokens, dim=3)
+                tokens = utils.safe_squeeze(tokens, dim=2)
+
+                feat_len = batch['features_len']
+                alis_lens.append(feat_len)
+
+                # the tokens should match the rate of the alignment
+                ali_es = self.align_tokens_to_features(batch, tokens)
+                assert (ali_es.shape[0] == batch['features'].shape[0])
+                assert (ali_es.shape[1] == batch['features'].shape[1])
+                alis_es.append(ali_es[:, :])
+                if 'alignment' in batch:
+                    ali_gt = batch['alignment']
+                    ali_len = batch['alignment_len']
+
+                    assert ((ali_len == feat_len).all())
+                    alis_gt.append(ali_gt)
+
+            tot_examples += num_examples
+            tot_loss += loss * num_examples
+            tot_errs += stats.get('err', np.nan) * num_examples
+
+            tot_detached_probesloss += detached_loss * num_examples
+            tot_backprop_probesloss += backprop_loss * num_examples
+            for k, v in stats.items():
+                if k == 'segmental_values':
+                    if logger.is_currently_logging():
+                        import matplotlib.pyplot as plt
+                        f = plt.figure(dpi=300)
+                        plt.plot(v.data.cpu().numpy(), 'r.-')
+                        f.set_tight_layout(True)
+                        logger.log_mpl_figure(f'segmentation_values', f)
+                elif utils.is_scalar(v):
+                    if k not in total_stats:
+                        total_stats[k] = v * num_examples
+                    else:
+                        total_stats[k] += v * num_examples
+        # loss is special, as we use it e.g. for learn rate control
+        # add all signals that we train agains, but remove the passive ones
+        all_scores = {
+            'loss': (tot_loss + tot_backprop_probesloss) / tot_examples,
+            'probes_backprop_loss': tot_backprop_probesloss / tot_examples,
+            'probes_detached_loss': tot_detached_probesloss / tot_examples,
+            'err': tot_errs / tot_examples,
+            'probes_loss': (tot_detached_probesloss + tot_backprop_probesloss
+                            ) / tot_examples
+        }
+
+        for k, v in total_stats.items():
+            all_scores[k] = v / tot_examples
+
+        if (len(alis_es) > 0) and (len(alis_gt) > 0):
+            # If we have gathered any alignments
+            f1_scores = dict(precision=[], recall=[], f1=[])
+            for batch in zip(alis_gt, alis_es, alis_lens):
+                batch = [t.detach().cpu().numpy() for t in batch]
+                for k, v in scoring.compute_f1_scores(*batch, delta=1).items():
+                    f1_scores[k].extend(v)
+            for k in ('f1', 'precision', 'recall'):
+                print(f"f1/{k}: {np.mean(f1_scores[k])}")
+                logger.log_scalar(f'f1/{k}', np.mean(f1_scores[k]))
+
+            alis_es = self._unpad_and_concat(alis_es, alis_lens)
+            alis_gt = self._unpad_and_concat(alis_gt, alis_lens) if len(
+                alis_gt) else None
+
+            scores_to_compute = [{
+                'prefix': 'all',
+                'es': alis_es,
+                'gt': alis_gt,
+            }]
+            if alis_gt is not None and self.pad_symbol is not None:
+                not_pad = (alis_gt != self.pad_symbol)
+                scores_to_compute.append({
+                    'prefix': 'nonpad',
+                    'es': alis_es[not_pad],
+                    'gt': alis_gt[not_pad]
+                })
+            if len(gan_es) > 0 and len(gan_gt) > 0:
+                gan_es = self._unpad_and_concat(gan_es, gan_lens)
+                gan_gt = self._unpad_and_concat(gan_gt, gan_lens)
+                scores_to_compute.append({
+                    'prefix': 'gan_tokens',
+                    'es': gan_es,
+                    'gt': gan_gt
+                })
+
+            for stc in scores_to_compute:
+                prefix = stc['prefix']
+                es = stc['es']
+
+                if alis_gt is not None:
+                    gt = stc['gt']
+
+                    all_scores[f'acc/{prefix}'] = (es == gt).mean()
+
+                    mapping_scores, mapping = self._mapping_metrics(
+                        gt,
+                        es,
+                        prefix=prefix
+                    )
+                    all_scores.update(mapping_scores)
+
+                    # Run the segmentation plottin with mapping
+                    if logger.is_currently_logging():
+                        _, _, tokens = self.minibatch_loss_and_tokens(
+                            first_batch
+                        )
+                        self.plot_input_and_alignments(
+                            first_batch['features'],
+                            alignment_es=tokens,
+                            alignment_gt=first_batch['alignment'],
+                            mapping=mapping,
+                            imshow_kwargs=dict(cmap='Greys'),
+                            log_suffix=f'{prefix}'
+                        )
+
+                    clustering_scores = self._clustering_metrics(
+                        gt,
+                        es,
+                        prefix=prefix
+                    )
+                    all_scores.update(clustering_scores)
+
+                perplexity_scores = self._perplexity_metrics(es, prefix=prefix)
+                all_scores.update(perplexity_scores)
+
+        return all_scores
+
     def minibatch_loss_and_tokens(
         self,
         batch,
@@ -143,6 +321,9 @@ class GanRepresentationLearner(RepresentationLearner):
         return (
             torch.tensor(0., requires_grad=True, device=feats.device),
                 # rec_loss,
-            {},  # details,
+            {
+                'gan_tokens': tokens,
+                'gan_batch': gan_batch
+            },  # details,
             tokens_aligned
         )

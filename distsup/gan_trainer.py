@@ -411,7 +411,7 @@ class TrainerForGan(object):
                     iteration=self.current_iteration))
             print('Results on {}: {}'.format(log_name, results))
             for k, v in results.items():
-                logger.log_scalar('_' + k, v)
+                logger.log_scalar(k, v)
             logger.end_log()
             return results
 
