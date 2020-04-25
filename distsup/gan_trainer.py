@@ -121,11 +121,11 @@ class TrainerForGan(object):
 
 
     def _log_train_batch(self, loss, stats, optimizer):
-        logger.log_scalar('_loss', loss.item())
+        logger.log_scalar('loss', loss.item())
         for k, v in stats.items():
             is_scalar, scalar_val = utils.maybe_get_scalar(v)
             if is_scalar:
-                logger.log_scalar('_' + k, scalar_val)
+                logger.log_scalar(k, scalar_val)
             else:
                 utils.log(
                     f"Could not log stat '{k}' to Tensorboard, since it is "
@@ -134,7 +134,7 @@ class TrainerForGan(object):
                     once=True)
 
         for i, param_group in enumerate(optimizer.param_groups):
-            logger.log_scalar('_learning_rate{}'.format(i), param_group['lr'])
+            logger.log_scalar('learning_rate{}'.format(i), param_group['lr'])
 
     def run(self, save_dir, model, train_dataset, eval_datasets=None,
         saved_state=None, debug_skip_training=False,
