@@ -6,6 +6,8 @@ from torch import (
 )
 from torch.autograd import Variable
 
+from distsup import utils
+
 
 class LReluCustom(nn.Module):
     def __init__(self, leak=0.1):
@@ -94,8 +96,15 @@ def assert_one_hot(x: torch.Tensor):
 
 
 def assert_as_target(x: torch.Tensor, target: torch.Tensor):
-    assert (x.squeeze(dim=2).cpu().argmax(dim=-1).long() == target.long().cpu()).all()
-
+    x = x.cpu()
+    target = target.cpu().long()
+    if len(x.shape) == 4:
+        x = utils.safe_squeeze(x, dim=2)
+    if len(x.shape) == 3:
+        es_tokens = x.argmax(dim=-1).long()
+    else:
+        es_tokens = x.long()
+    assert (es_tokens == target).all().item() == 1
 
 class AlignmentPrettyPrinter:
     def __init__(self, dataloader):

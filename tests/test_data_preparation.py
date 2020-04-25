@@ -1,8 +1,11 @@
+from copy import deepcopy
 from dataclasses import asdict
+import os
 
 import torch
+import torch.nn.functional as F
 
-from distsup.modules.gan.data_preparation import align_gan_output
+from distsup.data import FixedDatasetLoader
 from distsup.modules.gan.data_types import GanBatch, GanConfig
 
 gan_config = GanConfig(
@@ -73,7 +76,7 @@ def test_align_gan_output():
     )
     x = torch.tensor([*list(range(9)), 0]).unsqueeze(dim=0)
 
-    new_alignment = align_gan_output(
+    new_alignment = data_manipulator.align_gan_output(
         x,
         GanBatch(
             **asdict(gan_alignment),
@@ -83,3 +86,71 @@ def test_align_gan_output():
     )
 
     assert (new_alignment == alignment).all()
+
+
+def test_prepare_dataset():
+    print(os.listdir('../egs'))
+    dataloader = FixedDatasetLoader(
+        **{
+            'batch_size': 1,
+            'dataset': {
+                'class_name': 'distsup.data.ChunkedDataset',
+                'dataset': {
+                    'class_name': 'egs.scribblelens.data.ScribbleLensDataset',
+                    'root': '../data/scribblelens.corpus.v1.2.zip',
+                    'split': 'train',
+                    'alignment_root': '../data/scribblelens.paths.1.4b.zip',
+                    'vocabulary':
+                        '../egs/scribblelens/tasman.alphabet.plus.space'
+                        '.mode5.json'
+                },
+                'chunk_len': 96,
+                'training': True,
+                'varlen_fields': ['image', 'alignment'],
+                'drop_fields': ['text', 'alignment_rle', 'page_side',
+                    'page']
+            },
+            'rename_dict': {'image': 'features'},
+            'shuffle': False,
+            'num_workers': 4,
+            'drop_last': False
+        }
+    )
+    global gan_config
+    config = deepcopy(gan_config)
+    config.max_sentence_length = 96
+    from distsup.modules.gan.data_preparation import \
+        GanConcatedWindowsDataManipulation
+    data_manipulator = GanConcatedWindowsDataManipulation(
+        gan_config=config,
+        encoder_length_reduction=1
+    )
+
+    for batch in dataloader:
+        encoder_output = F.one_hot(
+            batch['alignment'].long(),
+            gan_config.dictionary_size,
+        ).float()
+        gan_batch = data_manipulator.prepare_gan_batch(
+            encoder_output,
+            batch,
+            auto_length=False,
+            force_single_concat_window=True,
+        )
+        from distsup.modules.gan.utils import assert_one_hot,  assert_as_target
+        assert_one_hot(gan_batch.data)
+        assert_as_target(gan_batch.data, gan_batch.target)
+        assert_as_target(
+            data_manipulator.align_gan_output(
+                gan_batch.data.argmax(dim=-1),
+                gan_batch,
+            ),
+            gan_batch.batch['alignment'],
+        )
+        data_manipulator.align_gan_output(
+            gan_batch.data.argmax(dim=-1),
+            gan_batch,
+        )
+
+
+

@@ -7,7 +7,7 @@ from distsup import (
 from distsup.logger import default_tensor_logger
 from distsup.models.representation_learners import RepresentationLearner
 from distsup.modules.gan.data_preparation import \
-    (GanConcatedWindowsDataManipulation, align_gan_output, )
+    (GanConcatedWindowsDataManipulation)
 from distsup.modules.gan.data_types import EncoderOutput, GanConfig
 from distsup.modules.gan.utils import assert_as_target, assert_one_hot
 
@@ -126,7 +126,7 @@ class GanRepresentationLearner(RepresentationLearner):
         )
         gen_output: torch.Tensor = self.gan_generator(gan_batch.data)
         tokens = gen_output.argmax(dim=-1)
-        tokens_aligned = align_gan_output(
+        tokens_aligned = self.gan_data_manipulator.align_gan_output(
             tokens,
             gan_batch
         ).unsqueeze(dim=2).unsqueeze(dim=3)

@@ -1,6 +1,6 @@
 import dataclasses
 import logging
-from typing import Dict, Optional
+from typing import Dict
 
 import numpy as np
 import torch
@@ -12,21 +12,6 @@ from distsup.utils import (
 
 
 # DICT_SIZE = 70
-
-
-def align_gan_output(
-    x: torch.Tensor,
-    batch: GanBatch
-) -> torch.Tensor:
-    output = torch.zeros_like(batch.batch['alignment'])
-    for idx, (bnd, _range, _len) in enumerate(zip(
-        batch.train_bnd,
-        batch.train_bnd_range,
-        batch.lens
-    )):
-        for i in range(_len.item()):
-            output[idx, bnd[i]: bnd[i] + _range[i] + 1] = x[idx, i]
-    return output
 
 
 class GanConcatedWindowsDataManipulation:
@@ -83,7 +68,7 @@ class GanConcatedWindowsDataManipulation:
             rle, values = rleEncode(algn)
             _len = values.shape[0]
             if _len > length:
-                logging.warning(
+                logging.error(
                     f'rle len [{_len}] exceeded max_sentence_length '
                     f'[{length}]'
                 )
@@ -135,8 +120,8 @@ class GanConcatedWindowsDataManipulation:
                     fill_value=windowed_x.shape[1],
                     dtype=torch.long
                 ),
-                train_bnd=torch.Tensor(0.),
-                train_bnd_range=torch.Tensor(0.),
+                train_bnd=torch.Tensor([0.]),
+                train_bnd_range=torch.Tensor([0.]),
                 data=windowed_x,
                 batch=batch,
             )
@@ -186,3 +171,21 @@ class GanConcatedWindowsDataManipulation:
             data=batched_sample_frame,
             batch=batch,
         )
+
+    def align_gan_output(
+        self,
+        x: torch.Tensor,
+        batch: GanBatch
+    ) -> torch.Tensor:
+        if self.use_all_letters:
+            return x
+        output = torch.zeros_like(batch.batch['alignment'])
+        for idx, (bnd, _range, _len) in enumerate(zip(
+            batch.train_bnd,
+            batch.train_bnd_range,
+            batch.lens
+        )):
+            for i in range(_len.item()):
+                output[idx, bnd[i]: bnd[i] + _range[i] + 1] = x[idx, i]
+        return output
+

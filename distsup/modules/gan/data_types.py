@@ -4,7 +4,7 @@ from typing import Dict, Optional, Union
 import torch
 
 
-@dataclass(frozen=True)
+@dataclass
 class GanConfig:
     concat_window: int
     dictionary_size: int

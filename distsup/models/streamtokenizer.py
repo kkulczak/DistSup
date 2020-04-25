@@ -298,6 +298,15 @@ class StreamTokenizerNet(probednet.ProbedNet):
             # Run the probes
             detached_loss, backprop_loss, probes_details = self.probes_loss(batch)
             stats.update(probes_details)
+            ### AWEFULL INJECTION
+            # if tokens.squeeze().shape != probes_details['enc_sup_out_seq'].shape:
+            #     print(
+            #         tokens.squeeze().shape,
+            #         probes_details['enc_sup_out_seq'].shape
+            #     )
+            #     breakpoint()
+            ## INJECTION
+            # tokens = probes_details['enc_sup_tokens']
 
             if tokens is not None:
                 # Tokens should be in layout B x W x 1 x 1
