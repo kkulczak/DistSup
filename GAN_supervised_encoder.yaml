@@ -65,7 +65,7 @@ Model:
     class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
     gan_config: True
   gan_discriminator:
-    class_name: distsup.modules.gan.discriminator_net.DiscriminatorNet
+    class_name: distsup.modules.gan.discriminator_maxpool.MaxPoolDiscriminator
 
     gan_config: True
 
