@@ -103,6 +103,9 @@ class GanRepresentationLearner(RepresentationLearner):
         gan_es = []
         gan_gt = []
         gan_lens = []
+
+        probe_enc_sup_es = []
+
         alis_es = []
         alis_gt = []
         alis_lens = []
@@ -130,6 +133,8 @@ class GanRepresentationLearner(RepresentationLearner):
             #     )
             #     breakpoint()
             ## INJECTION
+            if 'enc_sup_out_seq' in probes_details:
+                probe_enc_sup_es.append(probes_details['enc_sup_out_seq'])
             # tokens = probes_details['enc_sup_tokens']
 
             if 'gan_tokens' in stats and 'gan_batch' in stats:
@@ -225,6 +230,24 @@ class GanRepresentationLearner(RepresentationLearner):
                     'es': gan_es,
                     'gt': gan_gt
                 })
+
+            if len(probe_enc_sup_es) > 0:
+                probe_enc_sup_es = self._unpad_and_concat(
+                    probe_enc_sup_es,
+                    alis_lens
+                )
+                scores_to_compute.append({
+                    'prefix': 'probe_tokens',
+                    'es': probe_enc_sup_es,
+                    'gt': alis_gt
+                })
+                if self.pad_symbol is not None:
+                    not_pad = (alis_gt != self.pad_symbol)
+                    scores_to_compute.append({
+                        'prefix': 'probe_tokens_nonpad',
+                        'es': probe_enc_sup_es[not_pad],
+                        'gt': alis_gt[not_pad]
+                    })
 
             for stc in scores_to_compute:
                 prefix = stc['prefix']
