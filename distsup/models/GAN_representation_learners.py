@@ -137,7 +137,11 @@ class GanRepresentationLearner(RepresentationLearner):
                 probe_enc_sup_es.append(probes_details['enc_sup_out_seq'])
             # tokens = probes_details['enc_sup_tokens']
 
-            if 'gan_tokens' in stats and 'gan_batch' in stats:
+            if (
+                'gan_tokens' in stats
+                and 'gan_batch' in stats
+                and not self.gan_config.use_all_letters
+            ):
                 gan_es.append(stats['gan_tokens'])
                 gan_gt.append(stats['gan_batch'].target)
                 gan_lens.append(stats['gan_batch'].lens)
