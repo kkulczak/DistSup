@@ -222,11 +222,17 @@ class ProbedNet(base.Model):
 
         for probe_name, probe in self.probes.items():
             target_name = self.probes_dict[probe_name]['target']
+            if self.probes_dict[probe_name].get('bp_to_main'):
+                _input = batch['features'].detach()
+            else:
+                _input = batch['features']
             probe_loss, probe_details = probe.loss(
-                batch['features'],
+                _input,
                 batch[target_name],
                 features_len=batch.get('features_len'),
-                targets_len=batch.get(f'{target_name}_len'))
+                targets_len=batch.get(f'{target_name}_len'),
+                batch=batch
+            )
 
             probe_loss *= self.probes_dict[probe_name].get('learning_rate', 1.0)
             if self.probes_dict[probe_name].get('bp_to_main'):

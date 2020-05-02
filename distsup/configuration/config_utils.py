@@ -110,10 +110,14 @@ class ConfigParser:
             self.modify_config_node(config_dict, path, value)
         # TODO something smarter should be done here
         if config_dict.get('gan_config') is not None:
-            gan_config = config_dict['gan_config']
-            config_dict['Model']['gan_generator']['gan_config'] = copy.deepcopy(
-                gan_config)
-            config_dict['Model']['gan_discriminator'][
-                'gan_config'] = copy.deepcopy(gan_config)
-            config_dict['Trainer']['gan_config'] = copy.deepcopy(gan_config)
+            self.inject_gan_config(config_dict, config_dict['gan_config'])
         return config_dict
+
+    def inject_gan_config(self, origin, gan_config):
+        if not isinstance(origin, dict):
+            return
+        for v in origin.values():
+            self.inject_gan_config(v, gan_config)
+        if origin.get('inject_gan_config') is True:
+            origin['gan_config'] = copy.deepcopy(gan_config)
+            del origin['inject_gan_config']

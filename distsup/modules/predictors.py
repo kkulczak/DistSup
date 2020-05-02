@@ -20,6 +20,7 @@ import torch.nn.functional as F
 from distsup import utils
 from distsup.logger import DefaultTensorLogger
 from distsup.modules.encoders import makeRnn, RNNStack
+from distsup.utils import safe_squeeze
 
 logger = DefaultTensorLogger()
 
@@ -51,7 +52,7 @@ class GlobalPredictor(nn.Module):
                 "GlobalPredictor: not a valid reduction:" + self.time_reduce
             )
 
-    def loss(self, features, targets, features_len=None, targets_len=None):
+    def loss(self, features, targets, features_len=None, targets_len=None, **kwargs):
         out = self(self.input, features_len)
         loss = F.cross_entropy(out, targets)
         predicted = out.argmax(dim=1, keepdim=True)
@@ -172,7 +173,7 @@ class TripleFramewisePredictor(nn.Module):
         input_lens = (features_len + rate_factor - 1) // rate_factor
         return input_lens, rate_factor
 
-    def loss(self, features, targets, features_len=None, targets_len=None):
+    def loss(self, features, targets, features_len=None, targets_len=None, **kwargs):
         # the features may be padded
         if features_len is None:
             assert targets_len is None
@@ -253,7 +254,7 @@ class FramewisePredictor(nn.Module):
     """
 
     def __init__(self, input_dim, output_dim, aggreg=3,
-            use_two_layer_predictor=False, ignore_padding=True):
+            use_two_layer_predictor=False, ignore_padding=True, use_dense_layer=False):
         super(FramewisePredictor, self).__init__()
         self.kernel_size = aggreg
         self.ignore_padding = ignore_padding
@@ -266,6 +267,7 @@ class FramewisePredictor(nn.Module):
             )
         else:
             self.pred = nn.Conv1d(input_dim, output_dim, kernel_size=self.kernel_size)
+
 
     def forward(self, vq_output):
         vq_output = (vq_output.contiguous()
@@ -292,7 +294,7 @@ class FramewisePredictor(nn.Module):
         top.get_xaxis().set_visible(False)
         return fig
 
-    def loss(self, features, targets, features_len=None, targets_len=None):
+    def loss(self, features, targets, features_len=None, targets_len=None, **kwargs):
         # the features may be padded
         if features_len is None:
             assert targets_len is None
@@ -365,6 +367,29 @@ class FramewisePredictor(nn.Module):
         }
         return loss, details
 
+class LinearPredictor(FramewisePredictor):
+    def __init__(
+        self,
+        input_dim,
+        output_dim,
+        ignore_padding=True,
+        **kwargs,
+    ):
+        super(FramewisePredictor, self).__init__()
+        self.ignore_padding = ignore_padding
+        self.pred = nn.Sequential(
+            nn.Linear(input_dim, 512),
+            nn.ReLU(),
+            nn.Linear(512, output_dim)
+        )
+
+    def forward(self, x: torch.Tensor):
+        batch_size, phrase_length, _,  data_size = x.shape
+        x = safe_squeeze(x, dim=2)
+        x = x.reshape(batch_size * phrase_length, data_size)
+        x = self.pred(x)
+        x = x.view(batch_size, phrase_length, data_size)
+        return x.unsqueeze(dim=2)
 
 class BaseCTCPredictor(nn.Module):
     """
@@ -430,7 +455,7 @@ class BaseCTCPredictor(nn.Module):
         self.input = None
         return input
 
-    def loss(self, features, targets, features_len=None, targets_len=None):
+    def loss(self, features, targets, features_len=None, targets_len=None, **kwargs):
         features_len = self.calculateFeatureLens(features, features_len)
         input = self.retrieve_saved_input()
         # Calculate rate adjustments and lengths
