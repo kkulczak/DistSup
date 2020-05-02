@@ -22,6 +22,7 @@ class GanConfig:
     gen_steps: int
     gen_learning_rate: float
     # Optional
+    supervised: bool = False
     use_all_letters: bool = False
     dis_maxpool_reduction: int = 1
 

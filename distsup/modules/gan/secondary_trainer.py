@@ -115,6 +115,10 @@ class SecondaryTrainerGAN:
 
     def iterate_step(self, show=False):
         stats = {}
+        if self.config.supervised:
+            sups_stats = self.supervised_train(show=show)
+            return sups_stats
+
         for i in range(self.config.dis_steps):
             self.model.gan_discriminator.zero_grad()
             real_batch = self.sample_real_batch()
@@ -190,13 +194,56 @@ class SecondaryTrainerGAN:
             ) * self.config.gradient_penalty_ratio
             )
 
+        if self.config.gen_steps != 0:
+            mask = get_mask1d(
+                fake_batch.lens,
+                self.config.max_sentence_length
+            ).to(torch.bool)
+            corrects = (fake_batch.target.long() == fake_sample.argmax(-1).long(
+            )).float()
+            stats['acc/gan_train_batch'] = corrects[mask].mean().item()
+
+            if show:
+                for i in range(1):
+                    self.printer.show(
+                        fake_sample[i].argmax(-1).long(),
+                        fake_batch.target[i].long()
+                    )
+                print('#' * self.printer.line_length)
+
+        return stats
+
+    def supervised_train(self, show=False):
+        stats = {}
+        self.model.gan_generator.zero_grad()
+        fake_batch = self.sample_gen_batch()
+
+        fake_sample = self.model.gan_generator(fake_batch.data)
+        if self.config.use_all_letters:
+            fake_sample = fake_sample.repeat_interleave(
+                self.model.encoder.length_reduction,
+                dim=1
+            )
+
+        losses = F.cross_entropy(
+            fake_sample.permute(0, 2, 1),
+            fake_batch.target.long(),
+            reduction='none',
+        )
         mask = get_mask1d(
             fake_batch.lens,
             self.config.max_sentence_length
-        ).to(torch.bool)
-        corrects = (fake_batch.target.long() == fake_sample.argmax(-1).long(
-        )).float()
-        stats['acc/gan_train_batch'] = corrects[mask].mean().item()
+        )
+        mask = mask / mask.sum()
+        loss = (losses * mask).sum()
+        loss.backward()
+        self.optimizer_gen.step()
+
+        pred_labels = fake_sample.argmax(dim=2).long()
+        acc = ((pred_labels == fake_batch.target).float() * mask).sum()
+
+        stats['loss/gan_probe'] = loss.item()
+        stats['acc/gan_probe_batch'] = acc.item()
 
         if show:
             for i in range(1):
