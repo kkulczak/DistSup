@@ -114,7 +114,7 @@ class GanConcatedWindowsDataManipulation:
 
         if self.use_all_letters:
             return GanBatch(
-                target=alignment,
+                target=alignment.long(),
                 lens=torch.full(
                     (batch_size,),
                     fill_value=windowed_x.shape[1],
