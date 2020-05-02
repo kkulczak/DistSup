@@ -68,8 +68,11 @@ def get_parser():
     parser.add_argument('-t', '--tag',
                         default=os.environ.get('DISTSUP_EXP_TAG', None),
                         help='Experiment group name metadata')
-    parser.add_argument('--reject-gan-loading', '-r', action='store_true',
-                        help='in case of weigths loading, do not load gan parts'
+    parser.add_argument('--reject-weights', '-r',
+                        type=str,
+                        nargs='+',
+                        help='weights with names matches with this list '
+                             'won\'t be loaded'
                         )
     return parser
 
@@ -103,15 +106,14 @@ def ensure_logger_environ():
         raise ValueError('GOOGLE_APPLICATION_CREDENTIALS not set')
 
 
-def initialize_from(model, path, reject_gan_loading=None):
+def initialize_from(model, path, reject_weights_names=[]):
     state_dict = load_state(path)['state_dict']
     model_dict = model.state_dict()
 
     logging.info("Initializing parameters from {}:".format(path))
     loaded = []
     for k in sorted(model_dict.keys()):
-        if reject_gan_loading and \
-            k.split('.')[0] in ['gan_generator', 'gan_discriminator']:
+        if any((pattern in k) for pattern in reject_weights_names):
             continue
         if k in state_dict:
             param = state_dict[k]
@@ -183,7 +185,7 @@ def main():
         initialize_from(
             model,
             args.initialize_from,
-            reject_gan_loading=args.reject_gan_loading
+            reject_weights_names=args.reject_weights
         )
 
     logging.info("Model summary:\n%s" % (model,))
