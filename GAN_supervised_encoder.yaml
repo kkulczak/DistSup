@@ -63,11 +63,10 @@ Model:
       bp_to_main: True
   gan_generator:
     class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
-    gan_config: True
+    inject_gan_config: True
   gan_discriminator:
     class_name: distsup.modules.gan.discriminator_maxpool.MaxPoolDiscriminator
-
-    gan_config: True
+    inject_gan_config: True
 
 
 Trainer:
@@ -82,6 +81,7 @@ Trainer:
   output_frequency: 20
   num_epochs: 20
   optimizer_name: Adam
+  inject_gan_config: True
   distsup_training: False
 
 #to będzie wstrzyknięte do generatora, dyscriminatora oraz Trenera jako Klasa GanConfig
@@ -103,6 +103,7 @@ gan_config:
 # waga dla gp_penalty Chińskiego GANa
   gradient_penalty_ratio: 10.0
   use_all_letters: False
+  supervised: False
   # Discriminator part
   dis_steps: 3
   dis_emb_size: 256
