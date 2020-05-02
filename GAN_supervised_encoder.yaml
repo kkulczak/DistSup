@@ -62,7 +62,7 @@ Model:
 #        use_two_layer_predictor: False
 #      bp_to_main: False
   gan_generator:
-    class_name: distsup.modules.gan.generator_net.OneConv
+    class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
     activation: gumbel
     inject_gan_config: True
   gan_discriminator:
