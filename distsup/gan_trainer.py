@@ -271,10 +271,10 @@ class TrainerForGan(object):
                           torch.optim.lr_scheduler.ReduceLROnPlateau):
             lr_scheduler.step()
 
-        for batch_ind, (batch, _) in enumerate(
+        for batch_ind, batch in enumerate(
                 train_dataset
                 if self.distsup_training
-                else [({}, None) for _ in range(data_len)],
+                else [({}) for _ in range(data_len)]
         ):
             self.current_iteration += 1
             Globals.current_iteration = self.current_iteration
