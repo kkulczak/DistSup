@@ -65,7 +65,7 @@ Model:
     class_name: distsup.modules.gan.generator_net.OneConv
     inject_gan_config: True
   gan_discriminator:
-    class_name: distsup.modules.gan.discriminator_maxpool.DiscriminatorNet
+    class_name: distsup.modules.gan.discriminator_net.DiscriminatorNet
     inject_gan_config: True
 
 
