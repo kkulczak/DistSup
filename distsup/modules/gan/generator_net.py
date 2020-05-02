@@ -3,7 +3,6 @@ from torch import nn
 
 from distsup.modules.gan.data_types import GanConfig
 from distsup.modules.gan.utils import softmax_gumbel_noise
-from distsup.utils import safe_squeeze
 
 
 class LinearGeneratorNet(nn.Module):
@@ -57,6 +56,61 @@ class LinearGeneratorNet(nn.Module):
         #     x = torch.cat([generator_seed, x], dim=1)
 
         x = self.hidden1(x)
+
+        log_prob = x.reshape(
+            batch_size,
+            phrase_length,
+            self.gan_config.dictionary_size
+        )
+        soft_prob = softmax_gumbel_noise(log_prob, temperature)
+
+        return soft_prob
+
+
+class ConvGeneratorNet(nn.Module):
+    gan_config: GanConfig
+
+    def __init__(
+        self,
+        gan_config: dict,
+        encoder_element_size: int,
+        encoder_length_reduction: int,
+        z_size: int = 0,
+        **kwargs,
+    ):
+        super(ConvGeneratorNet, self).__init__()
+        self.gan_config = GanConfig(**gan_config)
+        self.encoder_element_size = encoder_element_size
+        self.encoder_length_reduction = encoder_length_reduction
+
+        self.n_feature = (
+            self.gan_config.concat_window * self.encoder_element_size
+        )
+        self.n_out = self.gan_config.dictionary_size
+
+        self.conv = nn.Sequential(
+            nn.Conv1d(
+                self.n_feature,
+                self.gan_config.gen_hidden_size,
+                kernel_size=3,
+                padding=1,
+            ),
+            nn.ReLU()
+        )
+        self.linear = nn.Sequential(
+            nn.Linear(self.gan_config.gen_hidden_size, self.n_out),
+        )
+
+    def forward(self, x: torch.Tensor, temperature: float = 0.9):
+        # x = safe_squeeze(x, dim=2)
+        batch_size, phrase_length, element_size = x.shape
+        x = x.permute(0, 2, 1)
+
+        x = self.conv(x)
+        x = x.permute(0, 2, 1)
+        x = x.reshape(batch_size * phrase_length, self.gan_config.gen_hidden_size)
+
+        x = self.linear(x)
 
         log_prob = x.reshape(
             batch_size,
