@@ -131,6 +131,7 @@ class OneConv(nn.Module):
         self,
         gan_config: dict,
         encoder_element_size: int,
+        activation: str = 'gumbel',
         **kwargs,
     ):
         super(OneConv, self).__init__()
@@ -141,9 +142,18 @@ class OneConv(nn.Module):
             kernel_size=3,
             padding=1,
         )
+        if activation == 'gumbel':
+            self.activation = lambda x: softmax_gumbel_noise(x, 0.9)
+        elif activation == 'softmax':
+            self.activation = lambda x: F.softmax(x, dim=-1)
+        elif activation == 'none':
+            self.activation = lambda x: x
+        else:
+            raise NotImplemented(f'activation ({activation}) is not defined')
+
 
     def forward(self, x: torch.Tensor):
         x = x.transpose(2, 1)
         x = self.pred(x)
         x = x.transpose(2, 1)
-        return x
+        return self.activation(x)
