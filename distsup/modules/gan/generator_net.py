@@ -1,5 +1,6 @@
 import torch
-from torch import nn
+import torch.nn as nn
+import torch.nn.functional as F
 
 from distsup.modules.gan.data_types import GanConfig
 from distsup.modules.gan.utils import softmax_gumbel_noise
@@ -108,7 +109,8 @@ class ConvGeneratorNet(nn.Module):
 
         x = self.conv(x)
         x = x.permute(0, 2, 1)
-        x = x.reshape(batch_size * phrase_length, self.gan_config.gen_hidden_size)
+        x = x.reshape(batch_size * phrase_length,
+                      self.gan_config.gen_hidden_size)
 
         x = self.linear(x)
 
@@ -120,3 +122,28 @@ class ConvGeneratorNet(nn.Module):
         soft_prob = softmax_gumbel_noise(log_prob, temperature)
 
         return soft_prob
+
+
+class OneConv(nn.Module):
+    gan_config: GanConfig
+
+    def __init__(
+        self,
+        gan_config: dict,
+        encoder_element_size: int,
+        **kwargs,
+    ):
+        super(OneConv, self).__init__()
+        self.gan_config = GanConfig(**gan_config)
+        self.pred = nn.Conv1d(
+            encoder_element_size,
+            self.gan_config.dictionary_size,
+            kernel_size=3,
+            padding=1,
+        )
+
+    def forward(self, x: torch.Tensor):
+        x = x.transpose(2, 1)
+        x = self.pred(x)
+        x = x.transpose(2, 1)
+        return x
