@@ -52,7 +52,6 @@ def run_exp():
         ]
         for k, v in params.items():
             run_cmd.extend(['-m', k, str(v)])
-        print(' '.join(run_cmd))
         subprocess.run(run_cmd)
         with open(f'runs/2020_05_05/{exp_id}/params.yaml', 'w') as f:
             yaml.dump(params, f)
