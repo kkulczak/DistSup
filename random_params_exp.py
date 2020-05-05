@@ -48,7 +48,7 @@ def run_exp():
             'GAN_supervised_encoder.yaml', f'runs/2020_05_05/{exp_id}/{_try}',
             '--rng-seed', f'{100 + _try}',
             '--initialize-from', '55_sup_enc.pkl',
-            '-r', 'gan', 'probe', '-d'
+            '-r', 'gan', 'probe'
         ]
         for k, v in params.items():
             run_cmd.extend(['-m', k, str(v)])
