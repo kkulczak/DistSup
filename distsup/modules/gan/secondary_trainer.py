@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torch.utils.data
 
 from distsup.configuration import Globals
+from distsup.data import ChunkedDataset
 from distsup.models.GAN_representation_learners import GanRepresentationLearner
 from distsup.modules.gan.data_preparation import \
     GanConcatedWindowsDataManipulation
@@ -218,7 +219,7 @@ class SecondaryTrainerGAN:
                 dim=1
             )
 
-        losses = F.cross_entropy(
+        losses = F.nll_loss(
             fake_sample.permute(0, 2, 1),
             fake_batch.target.long(),
             reduction='none',

@@ -63,9 +63,9 @@ class LinearGeneratorNet(nn.Module):
             phrase_length,
             self.gan_config.dictionary_size
         )
-        soft_prob = softmax_gumbel_noise(log_prob, temperature)
+        # soft_prob = softmax_gumbel_noise(log_prob, temperature)
 
-        return soft_prob
+        return F.softmax(log_prob, dim=-1)
 
 
 class ConvGeneratorNet(nn.Module):

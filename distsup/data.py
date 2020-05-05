@@ -17,7 +17,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
 from collections import OrderedDict, namedtuple, Counter
 import bisect
 import logging
@@ -49,7 +48,7 @@ class CDBDataset(torch.utils.data.Dataset):
         self.root = root
         fp = open(root, 'rb')
         mem = mmap.mmap(fp.fileno(), os.path.getsize(fp.name), mmap.MAP_SHARED,
-                mmap.PROT_READ)
+                        mmap.PROT_READ)
         self.reader = cdblib.Reader(mem)
         self.len = self.reader.getint(b'len')
 
@@ -58,7 +57,6 @@ class CDBDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         return pickle.loads(self.reader.get(bytes(idx)))
-
 
 
 class CachedDataset(torch.utils.data.Dataset):
@@ -108,7 +106,9 @@ class SequentialFrameDataset(torch.utils.data.Dataset):
                 for pos in range(int(start), int(end + 1)):
                     if (
                         pos - self.chunk_len // 2 >= 0
-                        and pos - self.chunk_len // 2 + self.chunk_len - 1 < len(data)
+                        and pos - self.chunk_len // 2 + self.chunk_len - 1 <
+                        len(
+                            data)
                     ):
                         self.all_targets.append(unit_id)
 
@@ -120,15 +120,19 @@ class SequentialFrameDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         idx *= self.every_n
         item_id = bisect.bisect(self.item_id_shift, idx) - 1
-        index_in_utterance = idx - self.item_id_shift[item_id] + self.chunk_len // 2
+        index_in_utterance = idx - self.item_id_shift[
+            item_id] + self.chunk_len // 2
         current_features = self.dataset[item_id][self.feature_field][
-            index_in_utterance
-            - self.chunk_len // 2 : index_in_utterance
-            - self.chunk_len // 2
-            + self.chunk_len
+        index_in_utterance
+        - self.chunk_len // 2: index_in_utterance
+                               - self.chunk_len // 2
+                               + self.chunk_len
         ]
 
-        return {self.feature_field: current_features, "target": self.all_targets[idx]}
+        return {
+            self.feature_field: current_features,
+            "target": self.all_targets[idx]
+        }
 
 
 class ChunkedDataset(torch.utils.data.Dataset):
@@ -183,9 +187,10 @@ class ChunkedDataset(torch.utils.data.Dataset):
                     )
 
         ref_len = item[self.varlen_fields[0]].size(0)
-        ref_offset = ref_len - self.chunk_len
+        assert ref_len > self.chunk_len, f"Item #{idx} is too short (" \
+                                         f"{ref_len} > {self.chunk_len})."
 
-        assert ref_len > self.chunk_len, f"Item #{idx} is too short ({ref_len} > {self.chunk_len})."
+        ref_offset = ref_len - self.chunk_len
 
         if self.training:
             ref_offset = random.randrange(ref_offset)
@@ -198,7 +203,7 @@ class ChunkedDataset(torch.utils.data.Dataset):
                 len_ratio = v.size(0) / ref_len
                 chunk_len = int(self.chunk_len * len_ratio)
                 chunk_offset = int(ref_offset * len_ratio)
-                v = v[chunk_offset : chunk_offset + chunk_len]
+                v = v[chunk_offset: chunk_offset + chunk_len]
             ret[k] = v
         if self.transform:
             ret = self.transform(ret)
@@ -237,7 +242,8 @@ class SpeechDataset(torch.utils.data.Dataset):
             cmvn_file = modality_opts.pop('cmvn_file')
             utt_centered = modality_opts.pop('utt_centered')
 
-            self.uttids[modality], self.features[modality] = zip(*self._read_scp_file(feature_file))
+            self.uttids[modality], self.features[modality] = zip(
+                *self._read_scp_file(feature_file))
             feature_dir = os.path.dirname(feature_file)
             self.features[modality] = OrderedDict(
                 [
@@ -288,8 +294,12 @@ class SpeechDataset(torch.utils.data.Dataset):
         super(SpeechDataset, self).__init__()
 
         self.metadata = {
-            "alignment": {"type": "categorical", "num_categories": len(self.alphabet)},
-            "targets": {"type": "categorical", "num_categories": len(self.alphabet)},
+            "alignment": {
+                "type": "categorical", "num_categories": len(self.alphabet)
+            },
+            "targets": {
+                "type": "categorical", "num_categories": len(self.alphabet)
+            },
         }
 
         if transform:
@@ -346,21 +356,23 @@ class SpeechDataset(torch.utils.data.Dataset):
 
         result = {"uttid": uttid}
 
-        result.update({modality: torch.tensor(self._load_feature(self.features[modality][uttid],
-                                                                 self.cmvn[modality],
-                                                                 self.feature_delta_dim[modality],
-                                                                 self.utt_centered[modality]))
-                       for modality in self.features})
+        result.update({modality: torch.tensor(
+            self._load_feature(self.features[modality][uttid],
+                               self.cmvn[modality],
+                               self.feature_delta_dim[modality],
+                               self.utt_centered[modality]))
+            for modality in self.features})
 
-        feature_lengths = {modality: result[modality].size(0) for modality in self.features}
+        feature_lengths = {modality: result[modality].size(0) for modality in
+            self.features}
 
         if len(set(feature_lengths.values())) != 1:
             utils.log(f"The features selected in the SpeechDataset have different lengths.",
-                      extra_msg=f"Feature lengths: {feature_lengths}. "
-                      f"Using the length of 'features' "
-                      f"for the alignments.",
-                      level=logging.WARNING,
-                      once=True)
+                extra_msg=f"Feature lengths: {feature_lengths}. "
+                          f"Using the length of 'features' "
+                          f"for the alignments.",
+                level=logging.WARNING,
+                once=True)
 
         feature_length = feature_lengths['features']
 
@@ -405,8 +417,8 @@ class SpeechDataset(torch.utils.data.Dataset):
 
             result[field] = F.pad(result[field],
                                   pad=[0, 0,
-                                       0, 0,
-                                       0, ali_size - fea_size])
+                                      0, 0,
+                                      0, ali_size - fea_size])
 
         else:
             utils.log('Features are larger than alignment.',
@@ -509,13 +521,14 @@ class SpeechDataset(torch.utils.data.Dataset):
                 tokens = text.split(" ")
             else:
                 tokens = text
-            tokenized[uttid] = np.array([self.alphabet.ch2idx(c) for c in tokens])
+            tokenized[uttid] = np.array(
+                [self.alphabet.ch2idx(c) for c in tokens])
         return tokenized
 
 
 def get_partial_sampler(dataset, ratio, salt=''):
     hashes = [hashlib.md5((salt + str(i)).encode()).digest()
-            for i in range(len(dataset))]
+        for i in range(len(dataset))]
     idxs = list(range(len(dataset)))
 
     idxs.sort(key=lambda i: hashes[i])
@@ -539,11 +552,12 @@ class FixedDatasetLoader(torch.utils.data.DataLoader):
         if ratio is not None:
             sampler = get_partial_sampler(dataset, ratio)
         super(FixedDatasetLoader, self).__init__(dataset=dataset,
-                sampler=sampler, **kwargs)
+                                                 sampler=sampler, **kwargs)
 
         if hasattr(self.dataset, "metadata"):
             self.metadata = {
-                self.rename_dict.get(k, k): v for k, v in self.dataset.metadata.items()
+                self.rename_dict.get(k, k): v for k, v in
+                self.dataset.metadata.items()
             }
 
     def __iter__(self):
@@ -593,9 +607,11 @@ class PaddingCollater:
     def __call__(self, batch):
         if self.rename_dict:
             batch = [
-                {self.rename_dict.get(k, k): v for k, v in e.items()} for e in batch
+                {self.rename_dict.get(k, k): v for k, v in e.items()} for e in
+                batch
             ]
-        feat_lengths = [example[self.main_feature].shape[0] for example in batch]
+        feat_lengths = [example[self.main_feature].shape[0] for example in
+            batch]
         indices = np.argsort(feat_lengths)[::-1]
 
         collated_batch = {}
@@ -672,7 +688,8 @@ SegmentInfo = namedtuple("SegmentInfo", ["item_id", "starts", "ends"])
 class FramePairDataset(torch.utils.data.Dataset):
     """
     Dataset that iterates over pairs of consequtive frames, where each
-    pair originates from the same segment. Depends on DistributionMatchingDataset.
+    pair originates from the same segment. Depends on
+    DistributionMatchingDataset.
     """
 
     def __init__(self, distrib_matching_dataset):
@@ -689,19 +706,21 @@ class FramePairDataset(torch.utils.data.Dataset):
         position = pair[1]
         feature_pairs = torch.stack(
             [
-                self.distrib_matching_dataset.dataset[item_id][self.feature_field][
-                    position
-                    - self.chunk_len // 2 : position
-                    - self.chunk_len // 2
-                    + self.chunk_len
+                self.distrib_matching_dataset.dataset[item_id][
+                    self.feature_field][
+                position
+                - self.chunk_len // 2: position
+                                       - self.chunk_len // 2
+                                       + self.chunk_len
                 ],
-                self.distrib_matching_dataset.dataset[item_id][self.feature_field][
-                    position
-                    - self.chunk_len // 2
-                    + 1 : position
-                    - self.chunk_len // 2
-                    + self.chunk_len
-                    + 1
+                self.distrib_matching_dataset.dataset[item_id][
+                    self.feature_field][
+                position
+                - self.chunk_len // 2
+                + 1: position
+                     - self.chunk_len // 2
+                     + self.chunk_len
+                     + 1
                 ],
             ]
         )
@@ -714,8 +733,10 @@ class FramePairDataset(torch.utils.data.Dataset):
 
 class DistributionMatchingDataset(torch.utils.data.Dataset):
     """
-    A dataset for distribution matching, constructed from an underlying sequential dataset.
-    Contains sampled chunks from `n=order` consequtive (phone or character) segments.
+    A dataset for distribution matching, constructed from an underlying
+    sequential dataset.
+    Contains sampled chunks from `n=order` consequtive (phone or character)
+    segments.
     Expects that the underlying dataset has fields $feature_field,
     text and alignment_rle
     """
@@ -762,7 +783,8 @@ class DistributionMatchingDataset(torch.utils.data.Dataset):
                 lm_prob = float(ss[0])
                 self.lm_probs.append(lm_prob)
                 self.lm_probs_ngrams.append(
-                    [self.alphabet_to_output[self.alphabet.ch2idx(p)] for p in ss[1:]]
+                    [self.alphabet_to_output[self.alphabet.ch2idx(p)] for p in
+                        ss[1:]]
                 )
 
                 for p in ss[1:]:
@@ -787,8 +809,10 @@ class DistributionMatchingDataset(torch.utils.data.Dataset):
                 self.segments.append(
                     SegmentInfo(
                         i,
-                        torch.tensor([int(a[0]) for a in ali_rle[j : j + order]]),
-                        torch.tensor([int(a[1]) for a in ali_rle[j : j + order]]),
+                        torch.tensor(
+                            [int(a[0]) for a in ali_rle[j: j + order]]),
+                        torch.tensor(
+                            [int(a[1]) for a in ali_rle[j: j + order]]),
                     )
                 )
 
@@ -808,8 +832,9 @@ class DistributionMatchingDataset(torch.utils.data.Dataset):
             if self.lm_probs is None:
                 ngrams = zip(
                     *[
-                        [self.alphabet_to_output[idx.item()] for idx in item["text"]][
-                            i:
+                        [self.alphabet_to_output[idx.item()] for idx in
+                            item["text"]][
+                        i:
                         ]
                         for i in range(self.order)
                     ]
@@ -822,7 +847,8 @@ class DistributionMatchingDataset(torch.utils.data.Dataset):
                     self.output_frequencies[output] += 1
 
         if lm_probs is None:
-            logging.info("Computing LM n-gram probabilities from reference text")
+            logging.info(
+                "Computing LM n-gram probabilities from reference text")
             self.lm_probs = []
             self.lm_probs_ngrams = []
             num_total_ngrams = sum(ngram_counter.values())
@@ -857,23 +883,25 @@ class DistributionMatchingDataset(torch.utils.data.Dataset):
         item_id = segment.item_id
         starts = segment.starts
         ends = segment.ends
-        sampled_positions = utils.sample_truncated_normal(starts, ends, self.stddev)
+        sampled_positions = utils.sample_truncated_normal(starts, ends,
+                                                          self.stddev)
 
         if self.chunk_len > 1:
             sampled_positions = torch.clamp(
                 sampled_positions,
                 self.chunk_len // 2,
                 len(
-                    self.dataset[item_id][self.feature_field] - self.chunk_len // 2 - 1
+                    self.dataset[item_id][
+                        self.feature_field] - self.chunk_len // 2 - 1
                 ),
             )
             sampled_features = torch.stack(
                 [
                     self.dataset[item_id][self.feature_field][
-                        sampled_position
-                        - self.chunk_len // 2 : sampled_position
-                        - self.chunk_len // 2
-                        + self.chunk_len
+                    sampled_position
+                    - self.chunk_len // 2: sampled_position
+                                           - self.chunk_len // 2
+                                           + self.chunk_len
                     ]
                     for sampled_position in sampled_positions.tolist()
                 ]
@@ -895,7 +923,8 @@ class DistributionMatchingDataset(torch.utils.data.Dataset):
 
     def get_frame_pair_iter(self, batch_size):
         """
-        Returns an iterator that loops infinitely over random pairs of consequtive frames
+        Returns an iterator that loops infinitely over random pairs of
+        consequtive frames
         that originate from the same segment.
         """
 

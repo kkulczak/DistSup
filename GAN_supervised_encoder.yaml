@@ -10,7 +10,7 @@ Datasets:
         alignment_root: "data/scribblelens.paths.1.4b.zip"
         vocabulary: egs/scribblelens/tasman.alphabet.plus.space.mode5.json
 #        alignment_mod: 7
-      chunk_len: 128
+      chunk_len: 360
       pad_with_zeros_if_short: true
       training: true
       varlen_fields: [image, alignment]
@@ -53,15 +53,15 @@ Model:
     identity: False
   reconstructor:
     class_name: distsup.modules.reconstructors.NullReconstructor
-  aux_heads:
-    enc_sup:
-      layer: encoder
-      target: alignment
-      predictor:
-        class_name: distsup.modules.predictors.FramewisePredictor
-        aggreg: 1
-        use_two_layer_predictor: False
-      bp_to_main: True
+#  aux_heads:
+#    enc_sup:
+#      layer: encoder
+#      target: alignment
+#      predictor:
+#        class_name: distsup.modules.predictors.FramewisePredictor
+#        aggreg: 1
+#        use_two_layer_predictor: False
+#      bp_to_main: True
   gan_generator:
     class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
     inject_gan_config: True
@@ -100,7 +100,7 @@ gan_config:
   dictionary_size: 68
 # Tutaj definiujemy długość wyjścia z encodera
 # Jeżeli alignment zawiera więcej literek, to po prostu przycinam tą ilość
-  max_sentence_length: 32
+  max_sentence_length: 64
 # waga dla gp_penalty Chińskiego GANa
   gradient_penalty_ratio: 10.0
   use_all_letters: False
@@ -114,6 +114,6 @@ gan_config:
   dis_learning_rate: 0.002
   # Generator part
   gen_steps: 1
-  gen_hidden_size: 512
+  gen_hidden_size: 64
   gen_learning_rate: 0.001
   
