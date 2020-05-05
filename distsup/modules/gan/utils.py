@@ -5,8 +5,10 @@ from torch import (
     nn,
 )
 from torch.autograd import Variable
+from torch.utils.data import Dataset
 
 from distsup import utils
+from distsup.data import ChunkedDataset, FixedDatasetLoader
 
 
 class LReluCustom(nn.Module):
@@ -17,8 +19,10 @@ class LReluCustom(nn.Module):
     def forward(self, x):
         return torch.max(x, self.leak * x)
 
+
 def lrelu(x, leak=0.1):
     return torch.max(x, leak * x)
+
 
 def softmax_gumbel_noise(
     logits: torch.Tensor,
@@ -106,6 +110,7 @@ def assert_as_target(x: torch.Tensor, target: torch.Tensor):
         es_tokens = x.long()
     assert (es_tokens == target).all().item() == 1
 
+
 class AlignmentPrettyPrinter:
     def __init__(self, dataloader):
         try:
@@ -129,3 +134,46 @@ class AlignmentPrettyPrinter:
                 print('#' * self.line_length)
             print(''.join([self.chars[y.item()] for y in target[slc]]))
             print(''.join([self.chars[y.item()] for y in x[slc]]))
+
+
+class AlignmentDataset(Dataset):
+    def __init__(self, alignments, target_height=32):
+        super(AlignmentDataset).__init__()
+        self.alignments = alignments
+        self.target_height = target_height
+
+    def __len__(self):
+        return len(self.alignments)
+
+    def __getitem__(self, item):
+        algn = self.alignments[item]
+        return {
+            'alignment': algn
+        }
+
+
+def generate_alignemnt_dataset(vanilla_dataloader):
+    alignments = [x['alignment'] for x in
+        vanilla_dataloader.dataset.dataset.data]
+    return FixedDatasetLoader(
+        dataset=ChunkedDataset(
+            dataset=AlignmentDataset(
+                alignments,
+                target_height=vanilla_dataloader.dataset.dataset.target_height
+            ),
+            chunk_len=vanilla_dataloader.dataset.chunk_len,
+            varlen_fields=['alignment'],
+            drop_fields=vanilla_dataloader.dataset.drop_fields,
+            training=vanilla_dataloader.dataset.training,
+            transform=vanilla_dataloader.dataset.transform,
+            oversample=vanilla_dataloader.dataset.oversample,
+            pad_with_zeros_if_short=vanilla_dataloader.dataset
+                .pad_with_zeros_if_short,
+        ),
+        field_names=vanilla_dataloader.field_names,
+        rename_dict=vanilla_dataloader.rename_dict,
+        batch_size=vanilla_dataloader.batch_size,
+        drop_last=vanilla_dataloader.drop_last,
+        shuffle=True,
+        num_workers=0,
+    )

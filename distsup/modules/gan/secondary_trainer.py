@@ -11,8 +11,10 @@ from distsup.modules.gan.data_preparation import \
 from distsup.modules.gan.data_types import EncoderOutput, GanBatch, GanConfig
 from distsup.modules.gan.utils import (AlignmentPrettyPrinter, assert_as_target,
                                        assert_one_hot,
-                                       compute_gradient_penalty, )
+                                       compute_gradient_penalty,
+                                       generate_alignemnt_dataset, )
 from distsup.utils import get_mask1d
+
 
 
 class SecondaryTrainerGAN:
@@ -34,16 +36,8 @@ class SecondaryTrainerGAN:
             gan_config=config,
             encoder_length_reduction=self.model.encoder.length_reduction,
         )
-        if Globals.debug:
-            self.alignments = None
-        else:
-            self.alignments = torch.cat(
-                [batch['alignment'] for batch in train_dataloader],
-                dim=0,
-            )
-            self.gan_alignments = self.data_manipulator.extract_alignment_data(
-                self.alignments
-            )
+        self.alignments_dataloader = generate_alignemnt_dataset(train_dataloader)
+        self.alignments_iter = iter(self.alignments_dataloader)
 
         self.optimizer_gen = optim.Adam(
             self.model.gan_generator.parameters(),
@@ -64,17 +58,16 @@ class SecondaryTrainerGAN:
             self.dataloader_iter = iter(self.vanilla_dataloader)
             return next(self.dataloader_iter)
 
+    def sample_alignments(self):
+        try:
+            return next(self.alignments_iter)
+        except StopIteration:
+            self.alignments_iter = iter(self.alignments_dataloader)
+            return next(self.alignments_iter)
+
     def sample_real_batch(self) -> GanBatch:
-        if Globals.debug:
-            batch = self.sample_vanilla_batch()
-            alignment = batch['alignment']
-        else:
-            batch = {}
-            idx = torch.randint(
-                high=self.alignments.shape[0],
-                size=(self.vanilla_dataloader.batch_size,),
-            )
-            alignment = self.alignments[idx]
+        batch = self.sample_alignments()
+        alignment = batch['alignment']
 
         real_sample = F.one_hot(
             alignment.long(),
