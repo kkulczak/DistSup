@@ -52,7 +52,7 @@ def get_parser():
                         help="List of config modifications")
     parser.add_argument('--cuda', default=torch.cuda.is_available(),
                         help='Use CUDA', type=str2bool)
-    parser.add_argument('--rng_seed', default=None, type=int,
+    parser.add_argument('--rng-seed', default=None, type=int,
                         help='Reset the rng seed')
     parser.add_argument('--initialize-from', default=None,
                         help='Load weights from')
