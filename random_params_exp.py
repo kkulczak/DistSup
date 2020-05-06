@@ -42,7 +42,7 @@ def run_exp():
     params['gan_config.gen_learning_rate'] = params['lr']
     del params['lr']
     exp_id = str(uuid.uuid4())[:12]
-    for _try in range(5):
+    for _try in range(8):
         run_cmd = [
             './train.sh',
             'GAN_supervised_encoder.yaml', f'runs/2020_05_05/{exp_id}/{_try}',
