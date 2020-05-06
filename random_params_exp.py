@@ -6,11 +6,11 @@ import numpy as np
 import yaml
 
 PARAMETERS = {
-    'gan_config.dis_hidden_1_size': [128, 2048],
-    'gan_config.dis_hidden_2_size': [128, 2048],
+    'gan_config.dis_hidden_1_size': [256, 2048],
+    'gan_config.dis_hidden_2_size': [512, 2048],
     'gan_config.dis_maxpool_reduction': [2, 32],
     'gan_config.gradient_penalty_ratio': [0.5, 32],
-    'lr': [0.0001, 0.0128]
+    'lr': [0.0004, 0.064]
 }
 
 
@@ -42,7 +42,7 @@ def run_exp():
     params['gan_config.gen_learning_rate'] = params['lr']
     del params['lr']
     exp_id = str(uuid.uuid4())[:12]
-    for _try in range(2):
+    for _try in range(5):
         run_cmd = [
             './train.sh',
             'GAN_supervised_encoder.yaml', f'runs/2020_05_05/{exp_id}/{_try}',
