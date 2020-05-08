@@ -46,7 +46,7 @@ def run_exp():
         run_cmd = [
             './train.sh',
             'GAN_supervised_encoder.yaml', f'runs/2020_05_05/{exp_id}/{_try}',
-            '--rng-seed', f'{100 + _try}',
+            '--rng-seed', f'{np.random.randint(9999)}',
             '--initialize-from', '55_sup_enc.pkl',
             '-r', 'gan', 'probe'
         ]
