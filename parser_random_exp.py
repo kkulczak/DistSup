@@ -2,6 +2,7 @@ from glob import glob
 import os
 
 import pandas as pd
+from tqdm import tqdm
 import yaml
 import csv
 
@@ -20,8 +21,9 @@ def parse_results():
     df = df.drop(columns=['dis_learning_rate', 'gen_learning_rate'])
     df: pd.DataFrame = df.rename(columns=lambda x: x.replace('dis_', ''))
     experiments_params = df
-    data: pd.DataFrame = pd.DataFrame(columns=['exp_id', '_try', 'name', 'step', 'value'])
-    for x in experiments_params.index:
+    columns = ['exp_id', '_try', 'name', 'step', 'value']
+    data = []
+    for x in tqdm(experiments_params.index):
         tries_files = glob(
             os.path.join(EXP_DIR, x, '[0-9]', 'dev', 'events*.csv'))
         for p in tries_files:
@@ -29,15 +31,16 @@ def parse_results():
             df = pd.read_csv(p)
             df['exp_id'] = x
             df['_try'] = _id
-            df = df[data.columns.tolist()]
-            data = data.append(df)
-    print(data.head())
-    return data, experiments_params
+            df = df[columns]
+            data.append(df)
+    return pd.concat(data), experiments_params
+
 
 def main():
     data, params = parse_results()
     print(params.head())
     print(data.head())
+
 
 if __name__ == '__main__':
     main()
