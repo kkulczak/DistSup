@@ -6,11 +6,11 @@ import numpy as np
 import yaml
 
 PARAMETERS = {
-    'gan_config.dis_hidden_1_size': [256, 2048],
-    'gan_config.dis_hidden_2_size': [512, 2048],
+    'gan_config.dis_hidden_1_size': [2048, 2048 * 2],
+    'gan_config.dis_hidden_2_size': [2048, 2048 * 2],
     'gan_config.dis_maxpool_reduction': [2, 32],
-    'gan_config.gradient_penalty_ratio': [0.5, 32],
-    'lr': [0.0004, 0.064]
+    'gan_config.gradient_penalty_ratio': [8, 8],
+    'lr': [0.001, 0.001]
 }
 
 
