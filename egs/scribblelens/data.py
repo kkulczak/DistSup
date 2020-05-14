@@ -270,6 +270,7 @@ class ScribbleLensDataset(torch.utils.data.Dataset):
                  target_width=-1,
                  transform=None,
                  alignment_mod=70,
+                 enforce_small_as_test=None,
                  ):
         """
         Args:
@@ -295,6 +296,7 @@ class ScribbleLensDataset(torch.utils.data.Dataset):
         """
         self.root = root
         self.alignment_mod = alignment_mod
+        self.enforce_small_as_test = enforce_small_as_test
         self.file = zipfile.ZipFile(root)
         root = 'scribblelens.corpus.v1'
 
@@ -654,6 +656,8 @@ class ScribbleLensDataset(torch.utils.data.Dataset):
         return tensor.cpu().detach().numpy().tobytes().decode('utf-8')
 
     def __len__(self):
+        if self.enforce_small_as_test:
+            return 544
         return len(self.data)
 
     def __getitem__(self, idx):
