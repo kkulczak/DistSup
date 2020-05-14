@@ -70,7 +70,7 @@ class GanConcatedWindowsDataManipulation:
             rle, values = rleEncode(algn)
             _len = values.shape[0]
             if _len > length:
-                logging.error(
+                logging.warning(
                     f'rle len [{_len}] exceeded max_sentence_length '
                     f'[{length}]'
                 )
