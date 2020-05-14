@@ -22,6 +22,7 @@ import logging
 import math
 
 import numpy as np
+from scipy.optimize import linear_sum_assignment
 import torch
 
 from distsup.logger import default_tensor_logger
@@ -236,9 +237,32 @@ class StreamTokenizerNet(probednet.ProbedNet):
             mapping[es_sym] = mapped_sym
             alis_es_mapped[ali_es == es_sym] = mapped_sym
 
-        # TODO: add one-to-one mapping accuracy
+        # one-to-one mapping accuracy with `linear_sum_assignment`
+        tokens = es_uniq.max() + 1
+        mappings_cost = np.zeros((tokens, tokens))
+        one_to_one_mapped = np.empty_like(ali_es)
+        for i in range(tokens):
+            gt_syms, gt_counts = np.unique(
+                ali_gt[ali_es == i],
+                return_counts=True
+            )
+            for sym, cnt in zip(gt_syms, gt_counts):
+                mappings_cost[i][sym] = -cnt
+        map_row, map_col = linear_sum_assignment(mappings_cost)
+        for es_sym, mapped_sym in zip(map_row, map_col):
+            one_to_one_mapped[ali_es == es_sym] = mapped_sym
 
-        return {f'many_es_to_one_gt_accuracy/{prefix}': (alis_es_mapped == ali_gt).mean()}, mapping
+        return (
+            {
+                f'many_es_to_one_gt_accuracy/{prefix}': (
+                    (alis_es_mapped == ali_gt).mean()
+                ),
+                f'one_es_to_one_gt_accuracy/{prefix}': (
+                    (one_to_one_mapped == ali_gt).mean()
+                ),
+            },
+            mapping
+        )
 
     @staticmethod
     def _perplexity_metrics(ali_es, prefix=''):
