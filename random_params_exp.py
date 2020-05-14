@@ -43,13 +43,13 @@ def run_exp():
     exp_id = str(uuid.uuid4())[:8]
     if params['use_all_letters'] == 1:
         params['gan_config.use_all_letters'] = True
-        params['gan_config.max_sentence_length'] = 360
+        params['gan_config.max_sentence_length'] = 384
     else:
         params['gan_config.use_all_letters'] = False
         params['gan_config.max_sentence_length'] = 64
     del params['use_all_letters']
     params['Model.encoder.identity'] = True
-    params['Trainer.num_epochs'] = 1
+    params['Trainer.num_epochs'] = 30
 
     for _try in range(2):
         destination_dir = (
@@ -63,7 +63,7 @@ def run_exp():
             '--rng-seed', f'{np.random.randint(9999)}',
             # '--initialize-from', '55_sup_enc.pkl',
             # '-r', 'gan', 'probe'
-            '-d'
+            # '-d'
         ]
         for k, v in params.items():
             run_cmd.extend(['-m', k, str(v)])

@@ -10,7 +10,7 @@ Datasets:
         alignment_root: "data/scribblelens.paths.1.4b.zip"
         vocabulary: egs/scribblelens/tasman.alphabet.plus.space.mode5.json
 #        alignment_mod: 7
-      chunk_len: 360
+      chunk_len: 384
       pad_with_zeros_if_short: true
       training: true
       varlen_fields: [image, alignment]
