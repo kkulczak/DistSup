@@ -1,5 +1,8 @@
+import itertools
 import json
+import os
 import subprocess
+from time import sleep
 import uuid
 
 import numpy as np
@@ -57,6 +60,26 @@ def run_exp():
             yaml.dump(params, f)
 
 
+def run_id_exp():
+    path = 'runs/2020_05_14/id_noise/'
+    noises = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+    for noise, seed in zip(itertools.cycle(noises), itertools.count()):
+        name = f'noise_{noise}_id_{seed}'
+        run_cmd = [
+            './train.sh',
+            'GAN_supervised_encoder.yaml',
+            os.path.join(path, name),
+            '--rng-seed', f'{seed}',
+            '--initialize-from', '55_sup_enc.pkl',
+            '-r', 'gan', 'probe'
+        ]
+        params = {
+            'gan_config.batch_inject_noise': noise,
+            'Trainer.num_epochs': 10,
+        }
+        for k, v in params.items():
+            run_cmd.extend(['-m', k, str(v)])
+        subprocess.run(run_cmd)
+
 if __name__ == '__main__':
-    while True:
-        run_exp()
+    run_id_exp()
