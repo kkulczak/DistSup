@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import copy, deepcopy
 from dataclasses import asdict
 import os
 
@@ -15,6 +15,7 @@ gan_config = GanConfig(
     max_sentence_length=12,
     gradient_penalty_ratio=10.0,
     use_all_letters=False,
+    batch_inject_noise=0.0,
     dis_steps=3,
     dis_emb_size=256,
     dis_hidden_1_size=256,
@@ -153,4 +154,31 @@ def test_prepare_dataset():
         )
 
 
+def test_inject_noise():
+    from distsup.modules.gan.data_preparation import \
+        GanConcatedWindowsDataManipulation
+    config = copy(gan_config)
+    config.batch_inject_noise = 0.5
+    data_manipulator = GanConcatedWindowsDataManipulation(
+        config,
+        encoder_length_reduction=4,
+    )
+    x = torch.arange(5 * 100).view(5, 100, 1).repeat_interleave(5, dim=2)
+    y = x.clone()
+
+    data_manipulator.inject_noise(y)
+
+    assert (0.4 < (y.sum(dim=2) == 1).float().mean().item() < 0.6)
+
+    config.batch_inject_noise = 0.0
+    data_manipulator = GanConcatedWindowsDataManipulation(
+        config,
+        encoder_length_reduction=4,
+    )
+    x = torch.arange(10, 5 * 100 + 10).view(5, 100, 1).repeat_interleave(5, dim=2)
+    y = x.clone()
+
+    data_manipulator.inject_noise(y)
+
+    assert (y.sum(dim=2) != 1).all()
 

@@ -105,6 +105,7 @@ gan_config:
   gradient_penalty_ratio: 10.0
   use_all_letters: False
   supervised: False
+  batch_inject_noise: 0.0
   # Discriminator part
   dis_steps: 3
   dis_emb_size: 256

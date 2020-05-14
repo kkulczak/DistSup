@@ -4,6 +4,7 @@ from typing import Dict
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 from distsup.modules.gan.data_types import GanAlignment, GanBatch, GanConfig
 from distsup.utils import (
@@ -20,6 +21,7 @@ class GanConcatedWindowsDataManipulation:
         gan_config: GanConfig,
         encoder_length_reduction,
     ):
+        self.config = gan_config
         self.encoder_length_reduction = encoder_length_reduction
         self.windows_size = gan_config.concat_window
         self.max_sentence_length = gan_config.max_sentence_length
@@ -113,6 +115,8 @@ class GanConcatedWindowsDataManipulation:
             )
 
         if self.use_all_letters:
+            if self.config.batch_inject_noise != 0.0:
+                self.inject_noise(windowed_x)
             return GanBatch(
                 target=alignment.long(),
                 lens=torch.full(
@@ -158,6 +162,9 @@ class GanConcatedWindowsDataManipulation:
             sample_frame_ids
         ]
 
+        if self.config.batch_inject_noise != 0.0:
+            self.inject_noise(batched_sample_frame)
+
         mask = (
             torch.arange(length)[None, :] < gan_alignment.lens[:, None]
         ).repeat(self.repeat, 1)
@@ -189,3 +196,18 @@ class GanConcatedWindowsDataManipulation:
                 output[idx, bnd[i]: bnd[i] + _range[i] + 1] = x[idx, i]
         return output
 
+    def inject_noise(self, x: torch.Tensor) -> None:
+        batch_size, phrase_length, data_size = x.shape
+        noise = F.one_hot(
+            torch.randint(
+                data_size,
+                size=(batch_size, phrase_length),
+            ),
+            num_classes=data_size,
+        )
+        inject_noise_ids = torch.rand((batch_size, phrase_length)) > (
+            1.0 - self.config.batch_inject_noise)
+        if self.config.batch_inject_noise == 0.0:
+            assert inject_noise_ids.any().item() == 0
+
+        x[inject_noise_ids] = noise[inject_noise_ids]
