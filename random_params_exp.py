@@ -51,9 +51,9 @@ def run_exp():
     params['Model.encoder.identity'] = True
     params['Trainer.num_epochs'] = 30
 
-    for _try in range(2):
+    for _try in range(1):
         destination_dir = (
-            f'runs/2020_05_15/{exp_id}_all_letters_' \
+            f'runs/2020_05_15/{exp_id}_all_letters_'
             f'{params["gan_config.use_all_letters"]}/{_try}'
         )
         run_cmd = [
