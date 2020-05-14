@@ -39,6 +39,20 @@ Datasets:
     shuffle: false
     num_workers: 4
     drop_last: True
+  dev_train:
+    class_name: PaddedDatasetLoader
+    batch_size: 32
+    dataset:
+      class_name: egs.scribblelens.data.ScribbleLensDataset
+      split: train
+      enforce_small_as_test: True
+      alignment_root: "data/scribblelens.paths.1.4b.zip"
+      vocabulary: egs/scribblelens/tasman.alphabet.plus.space.mode5.json
+    rename_dict:
+      image: features
+    shuffle: false
+    num_workers: 4
+    drop_last: True
 
 Model:
   class_name: distsup.models.GAN_representation_learners.GanRepresentationLearner
