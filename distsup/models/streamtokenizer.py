@@ -238,16 +238,18 @@ class StreamTokenizerNet(probednet.ProbedNet):
             alis_es_mapped[ali_es == es_sym] = mapped_sym
 
         # one-to-one mapping accuracy with `linear_sum_assignment`
-        tokens = es_uniq.max() + 1
-        mappings_cost = np.zeros((tokens, tokens))
+        mapping_size = np.concatenate(
+            [np.unique(ali_gt), es_uniq]
+        ).max() + 1
+        mappings_cost = np.zeros((mapping_size, mapping_size))
         one_to_one_mapped = np.empty_like(ali_es)
-        for i in range(tokens):
+        for i in range(mapping_size):
             gt_syms, gt_counts = np.unique(
                 ali_gt[ali_es == i],
                 return_counts=True
             )
-            for sym, cnt in zip(gt_syms, gt_counts):
-                mappings_cost[i][sym] = -cnt
+            mappings_cost[i][gt_syms] = -gt_counts
+
         map_row, map_col = linear_sum_assignment(mappings_cost)
         for es_sym, mapped_sym in zip(map_row, map_col):
             one_to_one_mapped[ali_es == es_sym] = mapped_sym
