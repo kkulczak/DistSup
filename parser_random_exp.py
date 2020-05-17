@@ -6,10 +6,8 @@ from tqdm import tqdm
 import yaml
 import csv
 
-EXP_DIR = 'runs/2020_05_05'
 
-
-def parse_results():
+def parse_results(EXP_DIR='runs/2020_05_05'):
     exps_params = glob(os.path.join(EXP_DIR, '*', 'params.yaml'))
     data_params = {
         path.split('/')[-2]: yaml.safe_load(open(path))
