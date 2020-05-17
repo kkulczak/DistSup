@@ -78,6 +78,7 @@ def run_exp(dir_name, how_many=1, debug=False):
         ]
         if debug:
             run_cmd.append('-d')
+            params['Trainer.num_epochs'] = 1
         for k, v in params.items():
             run_cmd.extend(['-m', k, str(v)])
         subprocess.run(run_cmd)

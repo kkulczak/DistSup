@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import torch
 from torch import (
@@ -100,6 +102,8 @@ def assert_one_hot(x: torch.Tensor):
 
 
 def assert_as_target(x: torch.Tensor, target: torch.Tensor):
+    logging.warning('assert_as_target is turned off')
+    return
     x = x.cpu()
     target = target.cpu().long()
     if len(x.shape) == 4:

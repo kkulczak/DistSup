@@ -202,9 +202,10 @@ class GanConcatedWindowsDataManipulation:
             torch.randint(
                 data_size,
                 size=(batch_size, phrase_length),
+                device=x.device
             ),
             num_classes=data_size,
-        )
+        ).float()
         inject_noise_ids = torch.rand((batch_size, phrase_length)) > (
             1.0 - self.config.batch_inject_noise)
         if self.config.batch_inject_noise == 0.0:
