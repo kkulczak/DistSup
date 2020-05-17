@@ -18,7 +18,7 @@ def parse_results(EXP_DIR='runs/2020_05_05'):
     if 'gen_learning_rate' in df:
         df['lr'] = df['gen_learning_rate']
         df = df.drop(columns=['dis_learning_rate', 'gen_learning_rate'])
-        df: pd.DataFrame = df.rename(columns=lambda x: x.replace('dis_', ''))
+    df: pd.DataFrame = df.rename(columns=lambda x: x.replace('dis_', ''))
     experiments_params = df
     columns = ['exp_id', '_try', 'name', 'step', 'value']
     data = []
