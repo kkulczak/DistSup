@@ -1,5 +1,7 @@
+from argparse import ArgumentParser
 import json
 import os
+import random
 import subprocess
 import uuid
 
@@ -7,12 +9,15 @@ import numpy as np
 import yaml
 
 PARAMETERS = {
-    'gan_config.gen_hidden_size': [64, 256],
-    'gan_config.dis_hidden_1_size': [128, 2048],
-    'gan_config.dis_hidden_2_size': [128, 2048],
-    'gan_config.dis_maxpool_reduction': [2, 16],
-    'gan_config.gradient_penalty_ratio': [8, 8],
-    'use_all_letters': [1, 2]
+    'gan_config.gen_hidden_size': 128,
+    'gan_config.batch_inject_noise': [0.0, 0.1, 0.2, 0.3, 0.4, 0.5],
+    'gan_config.dis_hidden_1_size': 1024,
+    'gan_config.dis_hidden_2_size': 512,
+    'gan_config.dis_maxpool_reduction': 2,
+    'gan_config.gradient_penalty_ratio': 8.0,
+    'Model.encoder.identity': True,
+    'Trainer.num_epochs': 21,
+
 }
 
 
@@ -28,33 +33,40 @@ def how_many(x, y):
     return 0
 
 
+def sample(val):
+    if isinstance(val, (int, float, bool)):
+        return val
+    if len(val) == 2 and all((isinstance(x, (int, float))) for x in val):
+        v = (2 ** np.random.randint(how_many(*val) + 1)) * (val[0])
+        assert val[0] <= v <= val[1]
+        return v
+    return random.choice(val)
+
+
 def sample_values():
     values = {
-        k: (2 ** np.random.randint(how_many(*v) + 1)) * (v[0])
+        k: sample(v)
         for k, v in PARAMETERS.items()
     }
-    for k, v in values.items():
-        assert PARAMETERS[k][0] <= v <= PARAMETERS[k][1]
     return values
 
 
-def run_exp():
+def run_exp(dir_name, how_many=1, debug=False):
     params = sample_values()
     exp_id = str(uuid.uuid4())[:8]
-    if params['use_all_letters'] == 1:
-        params['gan_config.use_all_letters'] = True
-        params['gan_config.max_sentence_length'] = 384
-    else:
-        params['gan_config.use_all_letters'] = False
-        params['gan_config.max_sentence_length'] = 64
-    del params['use_all_letters']
-    params['Model.encoder.identity'] = True
-    params['Trainer.num_epochs'] = 30
+    if 'use_all_letters' in params:
+        if params['use_all_letters'] == 1:
+            params['gan_config.use_all_letters'] = True
+            params['gan_config.max_sentence_length'] = 384
+        else:
+            params['gan_config.use_all_letters'] = False
+            params['gan_config.max_sentence_length'] = 64
+        del params['use_all_letters']
 
-    for _try in range(1):
+    for _try in range(how_many):
         destination_dir = (
-            f'runs/2020_05_15/{exp_id}_all_letters_'
-            f'{params["gan_config.use_all_letters"]}/{_try}'
+            f'{dir_name}/{exp_id}_inject_noise_'
+            f'{params["gan_config.batch_inject_noise"]}/{_try}'
         )
         run_cmd = [
             './train.sh',
@@ -63,8 +75,9 @@ def run_exp():
             '--rng-seed', f'{np.random.randint(9999)}',
             # '--initialize-from', '55_sup_enc.pkl',
             # '-r', 'gan', 'probe'
-            # '-d'
         ]
+        if debug:
+            run_cmd.append('-d')
         for k, v in params.items():
             run_cmd.extend(['-m', k, str(v)])
         subprocess.run(run_cmd)
@@ -76,5 +89,13 @@ def run_exp():
 
 
 if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument('dir_name', type=str,
+                        help='Directory where save runs results')
+    parser.add_argument('--repeat', '-r', type=int, default=1,
+                        help='how many runs for single args sample')
+    parser.add_argument('-d', '--debug', action='store_true')
+
+    args = parser.parse_args()
     while True:
-        run_exp()
+        run_exp(dir_name=args.dir_name, how_many=args.repeat, debug=args.debug)
