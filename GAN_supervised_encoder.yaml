@@ -59,7 +59,7 @@ Model:
   image_height: 32
   encoder:
     class_name: distsup.modules.convolutional.ConvStack1D
-    hid_channels: 68
+    hid_channels: 1024
     num_strided: 2
     num_dilated: 2
     num_postdil: 3
@@ -67,15 +67,15 @@ Model:
     identity: False
   reconstructor:
     class_name: distsup.modules.reconstructors.NullReconstructor
-#  aux_heads:
-#    enc_sup:
-#      layer: encoder
-#      target: alignment
-#      predictor:
-#        class_name: distsup.modules.predictors.FramewisePredictor
-#        aggreg: 1
-#        use_two_layer_predictor: False
-#      bp_to_main: True
+  aux_heads:
+    enc_sup:
+      layer: encoder
+      target: alignment
+      predictor:
+        class_name: distsup.modules.predictors.FramewisePredictor
+        aggreg: 1
+        use_two_layer_predictor: False
+      bp_to_main: True
   gan_generator:
     class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
     inject_gan_config: True
@@ -94,10 +94,10 @@ Trainer:
     factor: 0.5
     patience: 2
   output_frequency: 20
-  num_epochs: 10
+  num_epochs: 40
   optimizer_name: Adam
   inject_gan_config: True
-  distsup_training: False
+  distsup_training: True
 
 #to będzie wstrzyknięte do generatora, dyscriminatora oraz Trenera jako Klasa GanConfig
 # distsup.modules.gan.data_types.GanConfig
@@ -121,14 +121,14 @@ gan_config:
   supervised: False
   batch_inject_noise: 0.0
   # Discriminator part
-  dis_steps: 3
+  dis_steps: 0
   dis_emb_size: 256
   dis_hidden_1_size: 1024
   dis_hidden_2_size: 1024
   dis_maxpool_reduction: 8
   dis_learning_rate: 0.002
   # Generator part
-  gen_steps: 1
+  gen_steps: 0
   gen_hidden_size: 64
   gen_learning_rate: 0.001
   
