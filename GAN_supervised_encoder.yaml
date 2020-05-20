@@ -67,15 +67,15 @@ Model:
     identity: False
   reconstructor:
     class_name: distsup.modules.reconstructors.NullReconstructor
-#  aux_heads:
-#    enc_sup:
-#      layer: encoder
-#      target: alignment
-#      predictor:
-#        class_name: distsup.modules.predictors.FramewisePredictor
-#        aggreg: 1
-#        use_two_layer_predictor: False
-#      bp_to_main: True
+  aux_heads:
+    enc_sup:
+      layer: encoder
+      target: alignment
+      predictor:
+        class_name: distsup.modules.predictors.FramewisePredictor
+        aggreg: 1
+        use_two_layer_predictor: False
+      bp_to_main: True
   gan_generator:
     class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
     inject_gan_config: True
