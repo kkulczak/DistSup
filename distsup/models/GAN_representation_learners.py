@@ -1,4 +1,5 @@
 import copy
+from typing import Optional
 
 import numpy as np
 import torch
@@ -12,7 +13,8 @@ from distsup.models.representation_learners import RepresentationLearner
 from distsup.modules.gan.data_preparation import \
     (GanConcatedWindowsDataManipulation)
 from distsup.modules.gan.data_types import EncoderOutput, GanConfig
-from distsup.modules.gan.utils import assert_as_target, assert_one_hot
+from distsup.modules.gan.utils import (assert_as_target, assert_one_hot,
+                                       EncoderTokensProtos, )
 
 logger = default_tensor_logger.DefaultTensorLogger()
 
@@ -27,11 +29,14 @@ class GanRepresentationLearner(RepresentationLearner):
     4. reconstructor (reconstructs the inputs in an autoregressive or
                       deconvolutional or other way)
     """
+    letters_protos: Optional[EncoderTokensProtos] = None
+
 
     def __init__(
         self,
         gan_generator=None,
         gan_discriminator=None,
+        letters_protos=None,
         **kwargs
     ):
         super(GanRepresentationLearner, self).__init__(
@@ -61,6 +66,16 @@ class GanRepresentationLearner(RepresentationLearner):
             self.gan_discriminator = utils.construct_from_kwargs(
                 gan_discriminator
             )
+        if letters_protos is None:
+            self.letters_protos = None
+        else:
+            self.letters_protos = utils.construct_from_kwargs(
+                letters_protos,
+                additional_parameters={
+                    'num_tokens': self.gan_config.dictionary_size
+                }
+            )
+
 
         self.printer = None
         self.add_probes()
@@ -311,10 +326,7 @@ class GanRepresentationLearner(RepresentationLearner):
         )
         if self.encoder.identity:
             encoder_output = EncoderOutput(
-                data=F.one_hot(
-                    batch['alignment'].long(),
-                    num_classes=self.gan_generator.gan_config.dictionary_size
-                ).unsqueeze(dim=2).float(),
+                data=self.letters_protos.gen_sample(batch['alignment'].long()),
                 lens=batch.get('alignment_len')
             )
 
@@ -329,10 +341,6 @@ class GanRepresentationLearner(RepresentationLearner):
         #     batch, conds, needs_rec_image=needs_rec_image and False)
         # if needs_rec_image and False:
         #     self.log_images(feats, info, inputs, rec_imgs)
-
-        if self.encoder.identity:
-            assert_one_hot(encoder_output.data)
-            assert_as_target(encoder_output.data, batch['alignment'])
 
         gan_batch = self.gan_data_manipulator.prepare_gan_batch(
             encoder_output.data,

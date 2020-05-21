@@ -82,6 +82,11 @@ Model:
   gan_discriminator:
     class_name: distsup.modules.gan.discriminator_maxpool.MaxPoolDiscriminator
     inject_gan_config: True
+  letters_protos:
+    class_name: distsup.modules.gan.utils.EncoderTokensProtos
+    path: "data/encoder_letter_prototypes.npz"
+    protos_per_token: 1
+    deterministic: 1
 
 
 Trainer:

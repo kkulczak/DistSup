@@ -181,3 +181,55 @@ def generate_alignemnt_dataset(vanilla_dataloader):
         shuffle=True,
         num_workers=0,
     )
+
+
+class EncoderTokensProtos:
+    protos: torch.Tensor
+    protos_per_token: int
+    tokens_size: int
+
+    def __init__(
+        self,
+        path,
+        protos_per_token,
+        num_tokens=68,
+        deterministic=True,
+    ) -> None:
+
+        st0 = np.random.get_state()
+        if deterministic:
+            np.random.seed(0)
+
+        arr = np.load(path)
+        recognized = arr['gt'] == arr['hidden'].argmax(axis=1)
+        hidden = arr['hidden'][recognized]
+        gt = arr['gt'][recognized]
+        unrecognized = arr['hidden'][~recognized]
+
+        res = []
+        for i in range(num_tokens):
+            proto: np.ndarray = hidden[gt == i]
+            if proto.size == 0:
+                proto = unrecognized
+            size = proto.shape[0]
+            chosen = np.random.choice(size, size=protos_per_token)
+            res.append(proto[chosen])
+
+        self.protos_per_token = protos_per_token
+        self.tokens_size = hidden.shape[1]
+        self.protos = torch.from_numpy(np.stack(res, axis=0))
+
+        if deterministic:
+            np.random.set_state(st0)
+
+    def gen_sample(self, alignment: torch.Tensor) -> torch.Tensor:
+        batch_size, phrase_length = alignment.shape
+        ids = torch.arange(batch_size * phrase_length) * self.protos_per_token
+        rand_ids = torch.randint_like(ids, high=self.protos_per_token)
+        sample = (
+            self.protos[alignment.view(-1)]
+                .view(-1, self.tokens_size)[ids + rand_ids]
+                .view(batch_size, phrase_length, self.tokens_size)
+        )
+
+        return sample.to(device=alignment.device)

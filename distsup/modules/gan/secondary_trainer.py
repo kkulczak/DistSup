@@ -114,16 +114,9 @@ class SecondaryTrainerGAN:
             return sups_stats
 
         for i in range(self.config.dis_steps):
-            self.model.gan_discriminator.zero_grad()
+            self.optimizer_dis.zero_grad()
             real_batch = self.sample_real_batch()
-            if self.model.encoder.identity:
-                assert_one_hot(real_batch.data)
-                assert_as_target(real_batch.data, real_batch.target)
-
             fake_batch = self.sample_gen_batch()
-            if self.model.encoder.identity:
-                assert_one_hot(fake_batch.data)
-                assert_as_target(fake_batch.data, fake_batch.target)
 
             fake_sample = self.model.gan_generator(fake_batch.data)
 
@@ -157,11 +150,8 @@ class SecondaryTrainerGAN:
             stats['loss/gan_discriminator'] = dis_loss.item()
 
         for i in range(self.config.gen_steps):
-            self.model.gan_generator.zero_grad()
+            self.optimizer_gen.zero_grad()
             fake_batch = self.sample_gen_batch()
-            if self.model.encoder.identity:
-                assert_one_hot(fake_batch.data)
-                assert_as_target(fake_batch.data, fake_batch.target)
 
             fake_sample = self.model.gan_generator(fake_batch.data)
             if self.config.use_all_letters:
