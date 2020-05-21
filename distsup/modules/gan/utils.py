@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch import (
     autograd,
     nn,
@@ -194,6 +195,7 @@ class EncoderTokensProtos:
         protos_per_token,
         num_tokens=68,
         deterministic=True,
+        preproc_softmax=False,
     ) -> None:
 
         st0 = np.random.get_state()
@@ -201,10 +203,18 @@ class EncoderTokensProtos:
             np.random.seed(0)
 
         arr = np.load(path)
-        recognized = arr['gt'] == arr['hidden'].argmax(axis=1)
-        hidden = arr['hidden'][recognized]
+        if preproc_softmax:
+            data_hidden = F.softmax(
+                torch.from_numpy(arr['hidden']),
+                dim=1,
+            ).numpy()
+        else:
+            data_hidden = arr['hidden']
+
+        recognized = arr['gt'] == data_hidden.argmax(axis=1)
+        hidden = data_hidden[recognized]
         gt = arr['gt'][recognized]
-        unrecognized = arr['hidden'][~recognized]
+        unrecognized = data_hidden[~recognized]
 
         res = []
         for i in range(num_tokens):

@@ -86,7 +86,8 @@ Model:
     class_name: distsup.modules.gan.utils.EncoderTokensProtos
     path: "data/encoder_letter_prototypes.npz"
     protos_per_token: 1
-    deterministic: 1
+    deterministic: True
+    preproc_softmax: True
 
 
 Trainer:
