@@ -26,6 +26,7 @@ class GanConfig:
     use_all_letters: bool = False
     batch_inject_noise: float = 0.0
     dis_maxpool_reduction: int = 1
+    train_encoder: bool = False
 
 
 @dataclass

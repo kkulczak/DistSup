@@ -13,6 +13,7 @@ from distsup.modules.gan.data_preparation import \
     (GanConcatedWindowsDataManipulation)
 from distsup.modules.gan.data_types import EncoderOutput, GanConfig
 from distsup.modules.gan.utils import assert_as_target, assert_one_hot
+from distsup.utils import safe_squeeze
 
 logger = default_tensor_logger.DefaultTensorLogger()
 
@@ -105,6 +106,7 @@ class GanRepresentationLearner(RepresentationLearner):
         gan_lens = []
 
         probe_enc_sup_es = []
+        probe_enc_sup_hidden = []
 
         alis_es = []
         alis_gt = []
@@ -136,6 +138,10 @@ class GanRepresentationLearner(RepresentationLearner):
             if 'enc_sup_out_seq' in probes_details:
                 probe_enc_sup_es.append(probes_details['enc_sup_out_seq'])
             # tokens = probes_details['enc_sup_tokens']
+            if 'enc_sup_hidden' in probes_details:
+                probe_enc_sup_hidden.append(
+                    safe_squeeze(probes_details['enc_sup_hidden'], 2)
+                )
 
             if (
                 'gan_tokens' in stats
@@ -219,6 +225,20 @@ class GanRepresentationLearner(RepresentationLearner):
                 'es': alis_es,
                 'gt': alis_gt,
             }]
+            # INECTED
+            probe_hidden_es = self._unpad_and_concat(
+                probe_enc_sup_hidden,
+                alis_lens,
+                convert_to_int=False
+            )
+            np.savez(
+                'letters_protoypes.npz',
+                hidden=probe_hidden_es,
+                gt=alis_gt,
+            )
+            exit()
+            # REMOVE me
+
             if alis_gt is not None and self.pad_symbol is not None:
                 not_pad = (alis_gt != self.pad_symbol)
                 scores_to_compute.append({

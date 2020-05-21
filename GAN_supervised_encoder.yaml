@@ -25,21 +25,21 @@ Datasets:
     shuffle: true
     num_workers: 4
     drop_last: True
+#  dev:
+#    class_name: PaddedDatasetLoader
+#    batch_size: 32
+#    dataset:
+#      class_name: egs.scribblelens.data.ScribbleLensDataset
+#      split: test
+#      alignment_root: "data/scribblelens.paths.1.4b.zip"
+#      vocabulary: egs/scribblelens/tasman.alphabet.plus.space.mode5.json
+##      alignment_mod: 7
+#    rename_dict:
+#        image: features
+#    shuffle: false
+#    num_workers: 4
+#    drop_last: True
   dev:
-    class_name: PaddedDatasetLoader
-    batch_size: 32
-    dataset:
-      class_name: egs.scribblelens.data.ScribbleLensDataset
-      split: test
-      alignment_root: "data/scribblelens.paths.1.4b.zip"
-      vocabulary: egs/scribblelens/tasman.alphabet.plus.space.mode5.json
-#      alignment_mod: 7
-    rename_dict:
-        image: features
-    shuffle: false
-    num_workers: 4
-    drop_last: True
-  dev_train:
     class_name: PaddedDatasetLoader
     batch_size: 32
     dataset:
@@ -94,10 +94,10 @@ Trainer:
     factor: 0.5
     patience: 2
   output_frequency: 20
-  num_epochs: 10
+  num_epochs: 1
   optimizer_name: Adam
   inject_gan_config: True
-  distsup_training: True
+  distsup_training: False
 
 #to będzie wstrzyknięte do generatora, dyscriminatora oraz Trenera jako Klasa GanConfig
 # distsup.modules.gan.data_types.GanConfig
@@ -120,15 +120,16 @@ gan_config:
   use_all_letters: False
   supervised: False
   batch_inject_noise: 0.0
+  train_encoder: False
   # Discriminator part
-  dis_steps: 3
+  dis_steps: 0
   dis_emb_size: 256
   dis_hidden_1_size: 1024
   dis_hidden_2_size: 1024
   dis_maxpool_reduction: 8
   dis_learning_rate: 0.002
   # Generator part
-  gen_steps: 1
+  gen_steps: 0
   gen_hidden_size: 64
   gen_learning_rate: 0.001
   

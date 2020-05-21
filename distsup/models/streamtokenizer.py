@@ -279,7 +279,7 @@ class StreamTokenizerNet(probednet.ProbedNet):
                 f'used_tokens/{prefix}': len(sym)}
 
     @staticmethod
-    def _unpad_and_concat(alis, alis_len):
+    def _unpad_and_concat(alis, alis_len, convert_to_int=True):
         alis_unp = []
 
         # remove the padding tokens both from groundtruth and estimated alignments
@@ -292,8 +292,9 @@ class StreamTokenizerNet(probednet.ProbedNet):
                                      f'properly implemented?')
                 alis_unp.append(sample_ali[:sample_ali_len].detach().cpu().numpy())
 
-        alis_unp = np.concatenate(alis_unp).astype(np.int)
-
+        alis_unp = np.concatenate(alis_unp)
+        if convert_to_int:
+            alis_unp = alis_unp.astype(np.int)
         return alis_unp
 
     def pre_evaluate(self, batches):

@@ -362,8 +362,9 @@ class FramewisePredictor(nn.Module):
         details = {
             "loss": loss,
             "acc": acc,
-            "out_seq": pred_labels.detach(),
-            "tokens": hidden_tokens.detach(),
+            "out_seq": pred_labels.detach().cpu(),
+            "hidden": hidden.detach().cpu(),
+            "tokens": hidden_tokens.detach().cpu(),
         }
         return loss, details
 

@@ -1,3 +1,4 @@
+import itertools
 from typing import Dict, Tuple
 
 from torch import optim
@@ -15,7 +16,6 @@ from distsup.modules.gan.utils import (AlignmentPrettyPrinter, assert_as_target,
                                        compute_gradient_penalty,
                                        generate_alignemnt_dataset, )
 from distsup.utils import get_mask1d
-
 
 
 class SecondaryTrainerGAN:
@@ -37,11 +37,16 @@ class SecondaryTrainerGAN:
             gan_config=config,
             encoder_length_reduction=self.model.encoder.length_reduction,
         )
-        self.alignments_dataloader = generate_alignemnt_dataset(train_dataloader)
+        self.alignments_dataloader = generate_alignemnt_dataset(
+            train_dataloader)
         self.alignments_iter = iter(self.alignments_dataloader)
 
         self.optimizer_gen = optim.Adam(
-            self.model.gan_generator.parameters(),
+            itertools.chain(
+                self.model.gan_generator.parameters(),
+                self.model.gan_generator.parameters() if
+                self.config.train_encoder else []
+            ),
             lr=self.config.gen_learning_rate,
             betas=(0.5, 0.9),
         )
@@ -114,7 +119,7 @@ class SecondaryTrainerGAN:
             return sups_stats
 
         for i in range(self.config.dis_steps):
-            self.model.gan_discriminator.zero_grad()
+            self.optimizer_dis.zero_grad()
             real_batch = self.sample_real_batch()
             if self.model.encoder.identity:
                 assert_one_hot(real_batch.data)
@@ -125,7 +130,7 @@ class SecondaryTrainerGAN:
                 assert_one_hot(fake_batch.data)
                 assert_as_target(fake_batch.data, fake_batch.target)
 
-            fake_sample = self.model.gan_generator(fake_batch.data)
+            fake_sample = self.model.gan_generator(fake_batch.data).detach()
 
             if self.config.use_all_letters:
                 fake_sample = fake_sample.repeat_interleave(
@@ -157,7 +162,7 @@ class SecondaryTrainerGAN:
             stats['loss/gan_discriminator'] = dis_loss.item()
 
         for i in range(self.config.gen_steps):
-            self.model.gan_generator.zero_grad()
+            self.optimizer_gen.zero_grad()
             fake_batch = self.sample_gen_batch()
             if self.model.encoder.identity:
                 assert_one_hot(fake_batch.data)
@@ -209,7 +214,7 @@ class SecondaryTrainerGAN:
 
     def supervised_train(self, show=False):
         stats = {}
-        self.model.gan_generator.zero_grad()
+        self.optimizer_gen.zero_grad()
         fake_batch = self.sample_gen_batch()
 
         fake_sample = self.model.gan_generator(fake_batch.data)
