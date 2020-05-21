@@ -9,15 +9,9 @@ import numpy as np
 import yaml
 
 PARAMETERS = {
-    'gan_config.gen_hidden_size': 128,
-    'gan_config.batch_inject_noise': [0.0, 0.1, 0.2, 0.3, 0.4, 0.5],
-    'gan_config.dis_hidden_1_size': 1024,
-    'gan_config.dis_hidden_2_size': 512,
-    'gan_config.dis_maxpool_reduction': 2,
-    'gan_config.gradient_penalty_ratio': 8.0,
-    'Model.encoder.identity': True,
-    'Trainer.num_epochs': 21,
-
+    'gan_config.gen_hidden_size': [128, 512],
+    'gan_config.dis_hidden_2_size': [1024, 2048],
+    'Model.letters_protos.protos_per_token': [1, 2048]
 }
 
 
@@ -65,8 +59,8 @@ def run_exp(dir_name, how_many=1, debug=False):
 
     for _try in range(how_many):
         destination_dir = (
-            f'{dir_name}/{exp_id}_inject_noise_'
-            f'{params["gan_config.batch_inject_noise"]}/{_try}'
+            f'{dir_name}/{exp_id}protos_per_token'
+            f'{params["Model.letters_protos.protos_per_token"]}/{_try}'
         )
         run_cmd = [
             './train.sh',

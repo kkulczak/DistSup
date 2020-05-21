@@ -188,6 +188,7 @@ class EncoderTokensProtos:
     protos: torch.Tensor
     protos_per_token: int
     tokens_size: int
+    num_tokens: int
 
     def __init__(
         self,
@@ -202,7 +203,11 @@ class EncoderTokensProtos:
         if deterministic:
             np.random.seed(0)
 
-        arr = np.load(path)
+        if isinstance(path, str):
+            arr = np.load(path)
+        else:
+            arr = path
+
         if preproc_softmax:
             data_hidden = F.softmax(
                 torch.from_numpy(arr['hidden']),
@@ -227,18 +232,23 @@ class EncoderTokensProtos:
 
         self.protos_per_token = protos_per_token
         self.tokens_size = hidden.shape[1]
-        self.protos = torch.from_numpy(np.stack(res, axis=0))
+        self.num_tokens = num_tokens
+        self.protos = (
+            torch.from_numpy(np.concatenate(res, axis=0))
+        )
 
         if deterministic:
             np.random.set_state(st0)
 
     def gen_sample(self, alignment: torch.Tensor) -> torch.Tensor:
         batch_size, phrase_length = alignment.shape
-        ids = torch.arange(batch_size * phrase_length) * self.protos_per_token
-        rand_ids = torch.randint_like(ids, high=self.protos_per_token)
+        alignment = alignment.flatten()
+
+        sampling = torch.randint_like(alignment, high=self.protos_per_token)
+        ids = (alignment * self.protos_per_token) + sampling
+
         sample = (
-            self.protos[alignment.view(-1)]
-                .view(-1, self.tokens_size)[ids + rand_ids]
+            self.protos[ids]
                 .view(batch_size, phrase_length, self.tokens_size)
         )
 
