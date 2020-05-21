@@ -64,7 +64,7 @@ Model:
     num_dilated: 2
     num_postdil: 3
 # Tą flagą zamieniam ConvStack1D w identyczność nie tracąc kompatybilności wstecznej
-    identity: False
+    identity: True
   reconstructor:
     class_name: distsup.modules.reconstructors.NullReconstructor
 #  aux_heads:
