@@ -87,7 +87,8 @@ Model:
     path: "data/encoder_letter_prototypes.npz"
     protos_per_token: 1
     deterministic: True
-    preproc_softmax: True
+    preproc_softmax: False
+    use_only_recognized: False
 
 
 Trainer:
@@ -130,11 +131,11 @@ gan_config:
   dis_steps: 3
   dis_emb_size: 256
   dis_hidden_1_size: 1024
-  dis_hidden_2_size: 1024
+  dis_hidden_2_size: 2048
   dis_maxpool_reduction: 8
   dis_learning_rate: 0.002
   # Generator part
   gen_steps: 1
-  gen_hidden_size: 64
+  gen_hidden_size: 512
   gen_learning_rate: 0.001
   

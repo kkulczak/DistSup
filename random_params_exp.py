@@ -9,9 +9,7 @@ import numpy as np
 import yaml
 
 PARAMETERS = {
-    'gan_config.gen_hidden_size': [128, 512],
-    'gan_config.dis_hidden_2_size': [1024, 2048],
-    'Model.letters_protos.protos_per_token': [1, 2048]
+    'Model.letters_protos.protos_per_token': [8, 32768]
 }
 
 

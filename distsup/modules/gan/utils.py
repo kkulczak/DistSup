@@ -197,6 +197,7 @@ class EncoderTokensProtos:
         num_tokens=68,
         deterministic=True,
         preproc_softmax=False,
+        use_only_recognized=True,
     ) -> None:
 
         st0 = np.random.get_state()
@@ -216,16 +217,21 @@ class EncoderTokensProtos:
         else:
             data_hidden = arr['hidden']
 
-        recognized = arr['gt'] == data_hidden.argmax(axis=1)
-        hidden = data_hidden[recognized]
-        gt = arr['gt'][recognized]
-        unrecognized = data_hidden[~recognized]
+        if use_only_recognized:
+            recognized = arr['gt'] == data_hidden.argmax(axis=1)
+            hidden = data_hidden[recognized]
+            gt = arr['gt'][recognized]
+            in_case_of_empty = data_hidden[~recognized]
+        else:
+            hidden = data_hidden
+            gt = arr['gt']
+            in_case_of_empty = hidden
 
         res = []
         for i in range(num_tokens):
             proto: np.ndarray = hidden[gt == i]
             if proto.size == 0:
-                proto = unrecognized
+                proto = in_case_of_empty
             size = proto.shape[0]
             chosen = np.random.choice(size, size=protos_per_token)
             res.append(proto[chosen])
