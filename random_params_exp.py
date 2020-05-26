@@ -57,8 +57,8 @@ def run_exp(dir_name, how_many=1, debug=False):
 
     for _try in range(how_many):
         destination_dir = (
-            f'{dir_name}/{exp_id}protos_per_token'
-            f'{params["Model.letters_protos.protos_per_token"]}/{_try}'
+            f'{dir_name}/{exp_id}noise_'
+            f'{params["Model.alignment_shuffler.constant_noise"]}/{_try}'
         )
         run_cmd = [
             './train.sh',
