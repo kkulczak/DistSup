@@ -9,7 +9,7 @@ import numpy as np
 import yaml
 
 PARAMETERS = {
-    'Model.letters_protos.protos_per_token': [8, 32768]
+    'Model.alignment_shuffler.constant_noise': [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
 }
 
 
