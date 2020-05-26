@@ -198,7 +198,10 @@ class EncoderTokensProtos:
         deterministic=True,
         preproc_softmax=False,
         use_only_recognized=True,
+        use_one_hot=False,
     ) -> None:
+        self.protos_per_token = protos_per_token
+        self.num_tokens = num_tokens
 
         st0 = np.random.get_state()
         if deterministic:
@@ -236,15 +239,21 @@ class EncoderTokensProtos:
             chosen = np.random.choice(size, size=protos_per_token)
             res.append(proto[chosen])
 
-        self.protos_per_token = protos_per_token
         self.tokens_size = hidden.shape[1]
-        self.num_tokens = num_tokens
         self.protos = (
             torch.from_numpy(np.concatenate(res, axis=0))
         )
 
         if deterministic:
             np.random.set_state(st0)
+
+        if use_one_hot:
+            self.protos_per_token = 1
+            self.protos = F.one_hot(
+                torch.arange(num_tokens),
+                num_classes=self.tokens_size
+            ).view(num_tokens, self.tokens_size).float()
+
 
     def gen_sample(self, alignment: torch.Tensor) -> torch.Tensor:
         batch_size, phrase_length = alignment.shape

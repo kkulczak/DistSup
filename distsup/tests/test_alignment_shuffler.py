@@ -8,9 +8,6 @@ from distsup.modules.gan.alignment_shuffler import AlignmentShuffler
 
 
 class TestAlignmentShuffler(TestCase):
-    # def test_fix_empty_data(self):
-    #     pass
-    #
     def test_mode_protos(self):
         als = AlignmentShuffler(
             mode='protos',

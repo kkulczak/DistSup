@@ -10,6 +10,7 @@ from distsup import (
 )
 from distsup.logger import default_tensor_logger
 from distsup.models.representation_learners import RepresentationLearner
+from distsup.modules.gan.alignment_shuffler import AlignmentShuffler
 from distsup.modules.gan.data_preparation import \
     (GanConcatedWindowsDataManipulation)
 from distsup.modules.gan.data_types import EncoderOutput, GanConfig
@@ -30,13 +31,14 @@ class GanRepresentationLearner(RepresentationLearner):
                       deconvolutional or other way)
     """
     letters_protos: Optional[EncoderTokensProtos] = None
-
+    alignment_shuffler: Optional[AlignmentShuffler] = None
 
     def __init__(
         self,
         gan_generator=None,
         gan_discriminator=None,
         letters_protos=None,
+        alignment_shuffler=None,
         **kwargs
     ):
         super(GanRepresentationLearner, self).__init__(
@@ -66,13 +68,18 @@ class GanRepresentationLearner(RepresentationLearner):
             self.gan_discriminator = utils.construct_from_kwargs(
                 gan_discriminator
             )
-        if letters_protos is None:
-            self.letters_protos = None
-        else:
+        if letters_protos is not None:
             self.letters_protos = utils.construct_from_kwargs(
                 letters_protos,
                 additional_parameters={
                     'num_tokens': self.gan_config.dictionary_size
+                }
+            )
+        if alignment_shuffler is not None:
+            self.alignment_shuffler = utils.construct_from_kwargs(
+                alignment_shuffler,
+                additional_parameters={
+                    'dict_size': self.gan_config.dictionary_size
                 }
             )
 
@@ -325,8 +332,13 @@ class GanRepresentationLearner(RepresentationLearner):
             self.bottleneck_cond(batch)
         )
         if self.encoder.identity:
+            alignment = batch['alignment'].long()
+            if self.alignment_shuffler is not None:
+                alignment = self.alignment_shuffler.apply_noise(alignment)
+            if self.letters_protos is not None:
+                alignment = self.letters_protos.gen_sample(alignment)
             encoder_output = EncoderOutput(
-                data=self.letters_protos.gen_sample(batch['alignment'].long()),
+                data=alignment.to(batch['alignment'].device),
                 lens=batch.get('alignment_len')
             )
 
