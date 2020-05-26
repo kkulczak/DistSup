@@ -9,7 +9,6 @@ import numpy as np
 import yaml
 
 PARAMETERS = {
-    'Model.alignment_shuffler.constant_noise': [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
 }
 
 
@@ -57,8 +56,9 @@ def run_exp(dir_name, how_many=1, debug=False):
 
     for _try in range(how_many):
         destination_dir = (
-            f'{dir_name}/{exp_id}noise_'
-            f'{params["Model.alignment_shuffler.constant_noise"]}/{_try}'
+            f'{dir_name}/{exp_id}'
+            # f'{params["Model.alignment_shuffler.constant_noise"]}'
+            f'/{_try}'
         )
         run_cmd = [
             './train.sh',

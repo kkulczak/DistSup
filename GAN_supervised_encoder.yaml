@@ -85,16 +85,16 @@ Model:
   letters_protos:
     class_name: distsup.modules.gan.utils.EncoderTokensProtos
     path: "data/encoder_letter_prototypes.npz"
-    protos_per_token: 1024
-    deterministic: True
-    preproc_softmax: True
-    use_only_recognized: True
-    use_one_hot: False
+    protos_per_token: 1
+#    deterministic: True
+#    preproc_softmax: True
+#    use_only_recognized: True
+    use_one_hot: True
   alignment_shuffler:
     class_name: distsup.modules.gan.alignment_shuffler.AlignmentShuffler
-    mode: constant #One From (id, constant, protos)
+    mode: protos #One From (id, constant, protos)
     path: "data/encoder_letter_prototypes.npz"
-    constant_noise: 0.1
+#    constant_noise: 0.1
 
 
 Trainer:
