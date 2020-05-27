@@ -107,7 +107,7 @@ Trainer:
     factor: 0.5
     patience: 2
   output_frequency: 20
-  num_epochs: 20
+  num_epochs: 12
   optimizer_name: Adam
   inject_gan_config: True
   distsup_training: False
