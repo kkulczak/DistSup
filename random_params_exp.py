@@ -9,7 +9,8 @@ import numpy as np
 import yaml
 
 PARAMETERS = {
-    'Model.letters_protos.protos_per_token': [8, 32768]
+    'Model.letters_protos.protos_per_token': [1, 4096],
+    'gan_config.sample_from_middle_of_frame': [False, True],
 }
 
 
@@ -58,7 +59,9 @@ def run_exp(dir_name, how_many=1, debug=False):
     for _try in range(how_many):
         destination_dir = (
             f'{dir_name}/{exp_id}protos_per_token'
-            f'{params["Model.letters_protos.protos_per_token"]}/{_try}'
+            f'_protos_{params["Model.letters_protos.protos_per_token"]}'
+            f'_middle_{params["gan_config.sample_from_middle_of_frame"]}'
+            f'/{_try}'
         )
         run_cmd = [
             './train.sh',
