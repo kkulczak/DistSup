@@ -29,7 +29,10 @@ def how_many(x, y):
 def sample(val):
     if isinstance(val, (int, float, bool)):
         return val
-    if len(val) == 2 and all((isinstance(x, (int, float))) for x in val):
+    if len(val) == 2 and all(
+        (type(x) is int or type(x) is float)
+        for x in val
+    ):
         v = (2 ** np.random.randint(how_many(*val) + 1)) * (val[0])
         assert val[0] <= v <= val[1]
         return v
