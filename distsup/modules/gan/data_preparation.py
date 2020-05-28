@@ -69,6 +69,12 @@ class GanConcatedWindowsDataManipulation:
         for i, algn in enumerate(alignment):
             rle, values = rleEncode(algn)
             _len = values.shape[0]
+            if self.config.filter_blanks:
+                blanks_mask = values == 0
+                values = values[~blanks_mask]
+                rle = rle[~blanks_mask]
+                _len -= blanks_mask.sum().item()
+
             if _len > length:
                 logging.warning(
                     f'rle len [{_len}] exceeded max_sentence_length '
@@ -150,6 +156,9 @@ class GanConcatedWindowsDataManipulation:
             min=0.0,
             max=1.0,
         )
+
+        if self.config.sample_from_middle_of_frame:
+            random_pick = torch.full_like(random_pick, 0.5)
 
         sample_frame_ids = (
             gan_alignment.train_bnd.repeat(self.repeat, 1).float()

@@ -26,6 +26,8 @@ class GanConfig:
     use_all_letters: bool = False
     batch_inject_noise: float = 0.0
     dis_maxpool_reduction: int = 1
+    filter_blanks: bool = False
+    sample_from_middle_of_frame: bool = False
 
 
 @dataclass
