@@ -10,7 +10,7 @@ import yaml
 
 PARAMETERS = {
     'Model.letters_protos.protos_per_token': [1, 4096],
-    'gan_config.sample_from_middle_of_frame': [False, True],
+    'gan_config.sample_from_middle_of_frame': [True],
 }
 
 
