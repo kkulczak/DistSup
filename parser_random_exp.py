@@ -1,11 +1,20 @@
 from glob import glob
+import itertools
 import os
 
+from dask import bag, diagnostics
 import pandas as pd
 from tqdm import tqdm
 import yaml
 import csv
 
+def prcess_csv(path):
+    _id = p.split('/')[-3]
+    df = pd.read_csv(p)
+    df['exp_id'] = x
+    df['_try'] = _id
+    df = df[columns]
+    data.append(df)
 
 def parse_results(EXP_DIR='runs/2020_05_05'):
     exps_params = glob(os.path.join(EXP_DIR, '*', 'params.yaml'))
@@ -21,8 +30,9 @@ def parse_results(EXP_DIR='runs/2020_05_05'):
     df: pd.DataFrame = df.rename(columns=lambda x: x.replace('dis_', ''))
     experiments_params = df
     columns = ['exp_id', '_try', 'name', 'step', 'value']
-    data = []
-    for x in tqdm(experiments_params.index):
+
+    def f(x):
+        data = []
         tries_files = glob(
             os.path.join(EXP_DIR, x, '[0-9]', 'dev', 'events*.csv'))
         for p in tries_files:
@@ -32,7 +42,12 @@ def parse_results(EXP_DIR='runs/2020_05_05'):
             df['_try'] = _id
             df = df[columns]
             data.append(df)
-    return pd.concat(data), experiments_params
+        return data
+
+    with diagnostics.ProgressBar():
+        dfs = bag.from_sequence(experiments_params.index).map(f).compute()
+
+    return pd.concat(itertools.chain(*dfs)), experiments_params
 
 
 def main():
