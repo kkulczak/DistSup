@@ -64,7 +64,7 @@ Model:
     num_dilated: 2
     num_postdil: 3
 # Tą flagą zamieniam ConvStack1D w identyczność nie tracąc kompatybilności wstecznej
-    identity: True
+    identity: False
   reconstructor:
     class_name: distsup.modules.reconstructors.NullReconstructor
 #  aux_heads:
@@ -82,13 +82,13 @@ Model:
   gan_discriminator:
     class_name: distsup.modules.gan.discriminator_maxpool.MaxPoolDiscriminator
     inject_gan_config: True
-  letters_protos:
-    class_name: distsup.modules.gan.utils.EncoderTokensProtos
-    path: "data/encoder_letter_prototypes.npz"
-    protos_per_token: 1
-    deterministic: True
-    preproc_softmax: True
-    use_only_recognized: False
+#  letters_protos:
+#    class_name: distsup.modules.gan.utils.EncoderTokensProtos
+#    path: "data/encoder_letter_prototypes.npz"
+#    protos_per_token: 1
+#    deterministic: True
+#    preproc_softmax: True
+#    use_only_recognized: False
 #    use_one_hot: True
 #  alignment_shuffler:
 #    class_name: distsup.modules.gan.alignment_shuffler.AlignmentShuffler

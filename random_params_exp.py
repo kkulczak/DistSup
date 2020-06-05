@@ -9,8 +9,9 @@ import numpy as np
 import yaml
 
 PARAMETERS = {
-    'Model.letters_protos.protos_per_token': [1, 4096],
-    'gan_config.sample_from_middle_of_frame': [False],
+    'gan_config.sample_from_middle_of_frame': [True],
+    'gan_config.filter_blanks': [True],
+    'Trainer.num_epochs': [15, 20, 25, 30],
 }
 
 
@@ -61,9 +62,10 @@ def run_exp(dir_name, how_many=1, debug=False):
 
     for _try in range(how_many):
         destination_dir = (
-            f'{dir_name}/{exp_id}protos_per_token'
-            f'_protos_{params["Model.letters_protos.protos_per_token"]}'
-            f'_middle_{params["gan_config.sample_from_middle_of_frame"]}'
+            f'{dir_name}/{exp_id}'
+            # f'protos_per_token'
+            # f'_protos_{params["Model.letters_protos.protos_per_token"]}'
+            # f'_middle_{params["gan_config.sample_from_middle_of_frame"]}'
             f'/{_try}'
         )
         run_cmd = [
@@ -71,8 +73,8 @@ def run_exp(dir_name, how_many=1, debug=False):
             'GAN_supervised_encoder.yaml',
             destination_dir,
             '--rng-seed', f'{np.random.randint(9999)}',
-            # '--initialize-from', '55_sup_enc.pkl',
-            # '-r', 'gan', 'probe'
+            '--initialize-from', '55_sup_enc.pkl',
+            '-r', 'gan', 'probe'
         ]
         if debug:
             run_cmd.append('-d')
