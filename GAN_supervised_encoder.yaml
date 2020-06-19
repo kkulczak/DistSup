@@ -134,7 +134,7 @@ gan_config:
   supervised: False
   batch_inject_noise: 0.0
   sample_from_middle_of_frame: False
-  filter_blanks: False
+  filter_blanks: True
   # Discriminator part
   dis_steps: 3
   dis_emb_size: 256
