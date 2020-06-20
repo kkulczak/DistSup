@@ -8,13 +8,6 @@ from tqdm import tqdm
 import yaml
 import csv
 
-def prcess_csv(path):
-    _id = p.split('/')[-3]
-    df = pd.read_csv(p)
-    df['exp_id'] = x
-    df['_try'] = _id
-    df = df[columns]
-    data.append(df)
 
 def parse_results(EXP_DIR='runs/2020_05_05'):
     exps_params = glob(os.path.join(EXP_DIR, '*', 'params.yaml'))
@@ -34,7 +27,8 @@ def parse_results(EXP_DIR='runs/2020_05_05'):
     def f(x):
         data = []
         tries_files = glob(
-            os.path.join(EXP_DIR, x, '[0-9]', 'dev', 'events*.csv'))
+            os.path.join(EXP_DIR, x, '*', 'dev', 'events*.csv')
+        )
         for p in tries_files:
             _id = p.split('/')[-3]
             df = pd.read_csv(p)

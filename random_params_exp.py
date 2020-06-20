@@ -9,7 +9,9 @@ import numpy as np
 import yaml
 
 PARAMETERS = {
-    'Model.letters_protos.protos_per_token': [8, 32768]
+    'Model.letters_protos.protos_per_token': [1],
+    'Model.letters_protos.preproc_softmax': [True],
+    'Trainer.num_epochs': 30,
 }
 
 
@@ -60,8 +62,10 @@ def run_exp(dir_name, how_many=1, debug=False):
 
     for _try in range(how_many):
         destination_dir = (
-            f'{dir_name}/{exp_id}protos_per_token'
-            f'{params["Model.letters_protos.protos_per_token"]}/{_try}'
+            f'{dir_name}'
+            f'/{exp_id}protos_per_token'
+            f'{params["Model.letters_protos.protos_per_token"]}'
+            f'/{_try}'
         )
         run_cmd = [
             './train.sh',
