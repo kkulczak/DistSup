@@ -80,7 +80,7 @@ Model:
     class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
     inject_gan_config: True
   gan_discriminator:
-    class_name: distsup.modules.gan.discriminator_maxpool.MaxPoolDiscriminator
+    class_name: distsup.modules.gan.discriminator_net.DiscriminatorNet
     inject_gan_config: True
   letters_protos:
     class_name: distsup.modules.gan.utils.EncoderTokensProtos
@@ -138,12 +138,12 @@ gan_config:
   # Discriminator part
   dis_steps: 3
   dis_emb_size: 256
-  dis_hidden_1_size: 512
-  dis_hidden_2_size: 512
+  dis_hidden_1_size: 1024
+  dis_hidden_2_size: 1024
   dis_maxpool_reduction: 8
   dis_learning_rate: 0.002
   # Generator part
   gen_steps: 1
-  gen_hidden_size: 128
+  gen_hidden_size: 512
   gen_learning_rate: 0.001
   
