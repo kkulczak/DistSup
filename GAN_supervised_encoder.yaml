@@ -1,7 +1,7 @@
 Datasets:
   train:
     class_name: distsup.data.FixedDatasetLoader
-    batch_size: 128
+    batch_size: 64
     dataset:
       class_name: distsup.data.ChunkedDataset
       dataset:
@@ -72,7 +72,7 @@ Trainer:
   class_name: distsup.gan_trainer.TrainerForGan
   real_samples_dataloader:
     class_name: distsup.data.FixedDatasetLoader
-    batch_size: 128
+    batch_size: 64
     dataset:
       class_name: distsup.data.ChunkedDataset
       dataset:
