@@ -125,9 +125,9 @@ gan_config:
   dis_hidden_1_size: 1024
   dis_hidden_2_size: 1024
   dis_maxpool_reduction: 8
-  dis_learning_rate: 0.002
+  dis_learning_rate: 0.0002
   # Generator part
   gen_steps: 1
   gen_hidden_size: 512
-  gen_learning_rate: 0.001
+  gen_learning_rate: 0.0001
   
