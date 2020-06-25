@@ -79,6 +79,7 @@ class TrainerForGan(object):
         gan_config=None,
         skip_training=False,
         distsup_training=True,
+        real_samples_dataloader=None,
     ):
         super(TrainerForGan, self).__init__()
 
@@ -118,7 +119,10 @@ class TrainerForGan(object):
         self.gan_trainer: Optional[SecondaryTrainerGAN] = None
         self.skip_training = skip_training
         self.distsup_training = distsup_training
-
+        if real_samples_dataloader is not None:
+            self.real_samples_dataloader = utils.construct_from_kwargs(
+                real_samples_dataloader
+            )
 
     def _log_train_batch(self, loss, stats, optimizer):
         logger.log_scalar('loss', loss.item())
@@ -195,6 +199,7 @@ class TrainerForGan(object):
         self.gan_trainer = SecondaryTrainerGAN(
             model=model,
             train_dataloader=train_dataset,
+            alignments_dataloader=self.real_samples_dataloader,
             config=self.gan_config
         )
 
@@ -272,9 +277,9 @@ class TrainerForGan(object):
             lr_scheduler.step()
 
         for batch_ind, batch in enumerate(
-                train_dataset
-                if self.distsup_training
-                else [({}) for _ in range(data_len)]
+            train_dataset
+            if self.distsup_training
+            else [({}) for _ in range(data_len)]
         ):
             self.current_iteration += 1
             Globals.current_iteration = self.current_iteration
@@ -290,7 +295,6 @@ class TrainerForGan(object):
 
             if Globals.cuda:
                 batch = model.batch_to_device(batch, 'cuda')
-
 
             # with summary.Summary(model):
             if self.distsup_training:

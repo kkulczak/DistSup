@@ -99,6 +99,19 @@ Model:
 
 Trainer:
   class_name: distsup.gan_trainer.TrainerForGan
+  real_samples_dataloader:
+    class_name: distsup.data.FixedDatasetLoader
+    batch_size: 32
+    dataset:
+      class_name: distsup.data.ChunkedDataset
+      dataset:
+        class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
+      chunk_len: 64
+      pad_with_zeros_if_short: true
+      varlen_fields: [alignment, features]
+    shuffle: true
+    num_workers: 0
+    drop_last: true
   checkpointer:
     every_n_hours: 4
   learning_rate: 0.001

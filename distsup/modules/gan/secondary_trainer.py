@@ -25,6 +25,7 @@ class SecondaryTrainerGAN:
         self,
         model: GanRepresentationLearner,
         train_dataloader: torch.utils.data.DataLoader,
+        alignments_dataloader: torch.utils.data.DataLoader,
         config: GanConfig,
     ):
 
@@ -37,7 +38,7 @@ class SecondaryTrainerGAN:
             gan_config=config,
             encoder_length_reduction=self.model.encoder.length_reduction,
         )
-        self.alignments_dataloader = generate_alignemnt_dataset(train_dataloader)
+        self.alignments_dataloader = alignments_dataloader
         self.alignments_iter = iter(self.alignments_dataloader)
 
         self.optimizer_gen = optim.Adam(
@@ -66,24 +67,13 @@ class SecondaryTrainerGAN:
             self.alignments_iter = iter(self.alignments_dataloader)
             return next(self.alignments_iter)
 
-    def sample_real_batch(self) -> GanBatch:
+    def sample_real_batch(self) -> torch.Tensor:
         batch = self.sample_alignments()
-        alignment = batch['alignment']
-
-        real_sample = F.one_hot(
-            alignment.long(),
-            num_classes=self.config.dictionary_size
-        ).float()
-        gan_batch = self.data_manipulator.prepare_gan_batch(
-            real_sample,
-            batch={'alignment': alignment},
-            auto_length=False,
-            force_single_concat_window=True,
-        )
+        features = batch['features']
 
         if Globals.cuda:
-            gan_batch = self.data_manipulator.to_cuda(gan_batch)
-        return gan_batch
+            features = features.to('cuda')
+        return features
 
     def sample_batch_from_encoder(self
     ) -> Tuple[EncoderOutput, Dict[str, torch.Tensor]]:
@@ -127,14 +117,14 @@ class SecondaryTrainerGAN:
                 )
 
             fake_pred = self.model.gan_discriminator(fake_sample)
-            real_pred = self.model.gan_discriminator(real_batch.data)
+            real_pred = self.model.gan_discriminator(real_batch)
 
             fake_score = fake_pred.mean()
             real_score = real_pred.mean()
 
             gradient_penalty = compute_gradient_penalty(
                 self.model.gan_discriminator,
-                real_batch.data,
+                real_batch,
                 fake_sample
             )
             dis_loss = (
