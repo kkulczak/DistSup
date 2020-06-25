@@ -331,16 +331,6 @@ class GanRepresentationLearner(RepresentationLearner):
             batch.get('features_len'),
             self.bottleneck_cond(batch)
         )
-        if self.encoder.identity:
-            alignment = batch['alignment'].long()
-            if self.alignment_shuffler is not None:
-                alignment = self.alignment_shuffler.apply_noise(alignment)
-            if self.letters_protos is not None:
-                alignment = self.letters_protos.gen_sample(alignment)
-            encoder_output = EncoderOutput(
-                data=alignment.to(batch['alignment'].device),
-                lens=batch.get('alignment_len')
-            )
 
         if return_encoder_output:
             return EncoderOutput(

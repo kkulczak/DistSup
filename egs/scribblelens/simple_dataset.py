@@ -43,6 +43,7 @@ class TextScribbleLensDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         mode='id',
+        shape_as_image=False,
         texts_path='data/texts_train.pickle',
         vocabulary='egs/scribblelens/tasman.alphabet.plus.space.mode5.json'
     ):
@@ -61,6 +62,7 @@ class TextScribbleLensDataset(torch.utils.data.Dataset):
         else:
             raise NotImplemented(mode)
 
+        self.add_channels_dim = shape_as_image
         self.metadata = {
             'alignment': {
                 'type': 'categorical',
@@ -76,7 +78,10 @@ class TextScribbleLensDataset(torch.utils.data.Dataset):
         return len(self.texts)
 
     def __getitem__(self, item):
+        features = self.features[item]
+        if self.add_channels_dim:
+            features = features.unsqueeze(2)
         return {
             'alignment': self.alignments[item],
-            'features': self.features[item],
+            'features': features,
         }
