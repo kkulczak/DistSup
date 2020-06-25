@@ -11,7 +11,7 @@ import yaml
 PARAMETERS = {
     # 'Model.letters_protos.protos_per_token': [1],
     # 'Model.letters_protos.preproc_softmax': [True],
-    'Trainer.num_epochs': 40,
+    'Trainer.num_epochs': 80,
 }
 
 
