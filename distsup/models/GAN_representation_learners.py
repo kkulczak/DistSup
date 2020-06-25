@@ -223,31 +223,33 @@ class GanRepresentationLearner(RepresentationLearner):
 
         if (len(alis_es) > 0) and (len(alis_gt) > 0):
             # If we have gathered any alignments
-            f1_scores = dict(precision=[], recall=[], f1=[])
-            for batch in zip(alis_gt, alis_es, alis_lens):
-                batch = [t.detach().cpu().numpy() for t in batch]
-                for k, v in scoring.compute_f1_scores(*batch, delta=1).items():
-                    f1_scores[k].extend(v)
-            for k in ('f1', 'precision', 'recall'):
-                print(f"f1/{k}: {np.mean(f1_scores[k])}")
-                logger.log_scalar(f'f1/{k}', np.mean(f1_scores[k]))
+            # f1_scores = dict(precision=[], recall=[], f1=[])
+            # for batch in zip(alis_gt, alis_es, alis_lens):
+            #     batch = [t.detach().cpu().numpy() for t in batch]
+            #     for k, v in scoring.compute_f1_scores(*batch, delta=1).items():
+            #         f1_scores[k].extend(v)
+            # for k in ('f1', 'precision', 'recall'):
+            #     print(f"f1/{k}: {np.mean(f1_scores[k])}")
+            #     logger.log_scalar(f'f1/{k}', np.mean(f1_scores[k]))
 
             alis_es = self._unpad_and_concat(alis_es, alis_lens)
-            alis_gt = self._unpad_and_concat(alis_gt, alis_lens) if len(
-                alis_gt) else None
+            # alis_gt = self._unpad_and_concat(alis_gt, alis_lens) if len(
+            #     alis_gt) else None
 
-            scores_to_compute = [{
-                'prefix': 'all',
-                'es': alis_es,
-                'gt': alis_gt,
-            }]
-            if alis_gt is not None and self.pad_symbol is not None:
-                not_pad = (alis_gt != self.pad_symbol)
-                scores_to_compute.append({
-                    'prefix': 'nonpad',
-                    'es': alis_es[not_pad],
-                    'gt': alis_gt[not_pad]
-                })
+            scores_to_compute = [
+                #     {
+                #     'prefix': 'all',
+                #     'es': alis_es,
+                #     'gt': alis_gt,
+                # }
+            ]
+            # if alis_gt is not None and self.pad_symbol is not None:
+            #     not_pad = (alis_gt != self.pad_symbol)
+            #     scores_to_compute.append({
+            #         'prefix': 'nonpad',
+            #         'es': alis_es[not_pad],
+            #         'gt': alis_gt[not_pad]
+            #     })
             if len(gan_es) > 0 and len(gan_gt) > 0:
                 gan_es = self._unpad_and_concat(gan_es, gan_lens)
                 gan_gt = self._unpad_and_concat(gan_gt, gan_lens)
@@ -257,23 +259,23 @@ class GanRepresentationLearner(RepresentationLearner):
                     'gt': gan_gt
                 })
 
-            if len(probe_enc_sup_es) > 0:
-                probe_enc_sup_es = self._unpad_and_concat(
-                    probe_enc_sup_es,
-                    alis_lens
-                )
-                scores_to_compute.append({
-                    'prefix': 'probe_tokens',
-                    'es': probe_enc_sup_es,
-                    'gt': alis_gt
-                })
-                if self.pad_symbol is not None:
-                    not_pad = (alis_gt != self.pad_symbol)
-                    scores_to_compute.append({
-                        'prefix': 'probe_tokens_nonpad',
-                        'es': probe_enc_sup_es[not_pad],
-                        'gt': alis_gt[not_pad]
-                    })
+            # if len(probe_enc_sup_es) > 0:
+            #     probe_enc_sup_es = self._unpad_and_concat(
+            #         probe_enc_sup_es,
+            #         alis_lens
+            #     )
+            #     scores_to_compute.append({
+            #         'prefix': 'probe_tokens',
+            #         'es': probe_enc_sup_es,
+            #         'gt': alis_gt
+            #     })
+                # if self.pad_symbol is not None:
+                #     not_pad = (alis_gt != self.pad_symbol)
+                #     scores_to_compute.append({
+                #         'prefix': 'probe_tokens_nonpad',
+                #         'es': probe_enc_sup_es[not_pad],
+                #         'gt': alis_gt[not_pad]
+                #     })
 
             for stc in scores_to_compute:
                 prefix = stc['prefix']
@@ -284,36 +286,36 @@ class GanRepresentationLearner(RepresentationLearner):
 
                     all_scores[f'acc/{prefix}'] = (es == gt).mean()
 
-                    mapping_scores, mapping = self._mapping_metrics(
-                        gt,
-                        es,
-                        prefix=prefix
-                    )
-                    all_scores.update(mapping_scores)
+                    # mapping_scores, mapping = self._mapping_metrics(
+                    #     gt,
+                    #     es,
+                    #     prefix=prefix
+                    # )
+                    # all_scores.update(mapping_scores)
 
                     # Run the segmentation plottin with mapping
-                    if logger.is_currently_logging():
-                        _, _, tokens = self.minibatch_loss_and_tokens(
-                            first_batch
-                        )
-                        self.plot_input_and_alignments(
-                            first_batch['features'],
-                            alignment_es=tokens,
-                            alignment_gt=first_batch['alignment'],
-                            mapping=mapping,
-                            imshow_kwargs=dict(cmap='Greys'),
-                            log_suffix=f'{prefix}'
-                        )
+                    # if logger.is_currently_logging():
+                    #     _, _, tokens = self.minibatch_loss_and_tokens(
+                    #         first_batch
+                    #     )
+                    #     self.plot_input_and_alignments(
+                    #         first_batch['features'],
+                    #         alignment_es=tokens,
+                    #         alignment_gt=first_batch['alignment'],
+                    #         mapping=mapping,
+                    #         imshow_kwargs=dict(cmap='Greys'),
+                    #         log_suffix=f'{prefix}'
+                    #     )
 
-                    clustering_scores = self._clustering_metrics(
-                        gt,
-                        es,
-                        prefix=prefix
-                    )
-                    all_scores.update(clustering_scores)
+                    # clustering_scores = self._clustering_metrics(
+                    #     gt,
+                    #     es,
+                    #     prefix=prefix
+                    # )
+                    # all_scores.update(clustering_scores)
 
-                perplexity_scores = self._perplexity_metrics(es, prefix=prefix)
-                all_scores.update(perplexity_scores)
+                # perplexity_scores = self._perplexity_metrics(es, prefix=prefix)
+                # all_scores.update(perplexity_scores)
 
         return all_scores
 

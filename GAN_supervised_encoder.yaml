@@ -19,6 +19,7 @@ Datasets:
     dataset:
       class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
       shape_as_image: true
+      eval_size_only: true
     varlen_fields: [alignment, features]
     shuffle: false
     num_workers: 0
