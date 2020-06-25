@@ -286,12 +286,12 @@ class GanRepresentationLearner(RepresentationLearner):
 
                     all_scores[f'acc/{prefix}'] = (es == gt).mean()
 
-                    # mapping_scores, mapping = self._mapping_metrics(
-                    #     gt,
-                    #     es,
-                    #     prefix=prefix
-                    # )
-                    # all_scores.update(mapping_scores)
+                    mapping_scores, mapping = self._mapping_metrics(
+                        gt,
+                        es,
+                        prefix=prefix
+                    )
+                    all_scores.update(mapping_scores)
 
                     # Run the segmentation plottin with mapping
                     # if logger.is_currently_logging():
@@ -314,8 +314,8 @@ class GanRepresentationLearner(RepresentationLearner):
                     # )
                     # all_scores.update(clustering_scores)
 
-                # perplexity_scores = self._perplexity_metrics(es, prefix=prefix)
-                # all_scores.update(perplexity_scores)
+                perplexity_scores = self._perplexity_metrics(es, prefix=prefix)
+                all_scores.update(perplexity_scores)
 
         return all_scores
 
