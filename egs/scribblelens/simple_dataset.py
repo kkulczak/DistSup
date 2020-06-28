@@ -12,7 +12,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 import copy
 import io
 import logging
@@ -24,19 +23,11 @@ import zipfile
 
 import torch.utils.data
 import torch.nn.functional as F
-import PIL.Image
-import torchvision
-import numpy as np
-import pandas as pd
 
 # Future FIXME: extract Path from Aligner into its own class and just import
 #  class Path
-import distsup
-from distsup import aligner
-
-import egs.scribblelens.utils
+sys.path.append('/home/kku/Documents/DistSup')
 from distsup.alphabet import Alphabet
-from distsup.utils import construct_from_kwargs
 
 
 class TextScribbleLensDataset(torch.utils.data.Dataset):
@@ -55,6 +46,18 @@ class TextScribbleLensDataset(torch.utils.data.Dataset):
             torch.tensor(self.alphabet.symList2idxList(t))
             for t in self.texts
         ]
+        # for i in range(len(self.alignments)):
+        #     length = self.alignments[i].shape[0]
+        #     if length < 64:
+        #         self.alignments[i] = torch.cat([
+        #             self.alignments[i],
+        #             torch.zeros(64-length, dtype=torch.long)
+        #         ])
+        #     else:
+        #         self.alignments[i] = self.alignments[i][:64]
+
+
+
         if mode == 'id':
             self.features = [
                 F.one_hot(a, num_classes=len(self.alphabet)).float()

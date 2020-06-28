@@ -133,10 +133,18 @@ class SecondaryTrainerGAN:
             )
 
             dis_loss.backward()
+            torch.nn.utils.clip_grad_norm_(
+                self.model.gan_discriminator.parameters(),
+                5.0,
+            )
             self.optimizer_dis.step()
 
             stats['gan_metrics/gradient_penalty'] = gradient_penalty.item()
             stats['gan_metrics/real'] = real_score.item()
+            stats['gan_metrics/fake'] = fake_score.item()
+            stats['gan_metrics/diff_abs'] = (
+                fake_score.item() - real_score.item()
+            )
             stats['loss/gan_discriminator'] = dis_loss.item()
 
         for i in range(self.config.gen_steps):
@@ -155,13 +163,13 @@ class SecondaryTrainerGAN:
             fake_score = fake_pred.mean()
             gen_loss = - fake_score
             gen_loss.backward()
+            torch.nn.utils.clip_grad_norm_(
+                self.model.gan_generator.parameters(),
+                5.0,
+            )
             self.optimizer_gen.step()
 
-            stats['gan_metrics/fake'] = fake_score.item()
             stats['loss/gan_generator'] = gen_loss.item()
-            stats['gan_metrics/diff_abs'] = (
-                fake_score.item() - real_score.item()
-            )
             stats['gan_metrics/gp_impact'] = (
                 gradient_penalty.item() / (
                 dis_loss.item()

@@ -1,8 +1,10 @@
 Datasets:
   train:
     class_name: distsup.data.FixedDatasetLoader
-    batch_size: 64
+    batch_size: 32
     dataset:
+#      class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
+#      shape_as_image: true
       class_name: distsup.data.ChunkedDataset
       dataset:
         class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
@@ -15,7 +17,7 @@ Datasets:
     drop_last: true
   dev:
     class_name: distsup.data.PaddedDatasetLoader
-    batch_size: 128
+    batch_size: 32
     dataset:
       class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
       shape_as_image: true
@@ -72,11 +74,15 @@ Trainer:
   class_name: distsup.gan_trainer.TrainerForGan
   real_samples_dataloader:
     class_name: distsup.data.FixedDatasetLoader
-    batch_size: 64
+    batch_size: 32
     dataset:
+#      class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
+#      shape_as_image: false
+
       class_name: distsup.data.ChunkedDataset
       dataset:
         class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
+        shape_as_image: false
       chunk_len: 64
       pad_with_zeros_if_short: true
       varlen_fields: [alignment, features]
@@ -91,7 +97,7 @@ Trainer:
     factor: 0.5
     patience: 2
   output_frequency: 20
-  num_epochs: 30
+  num_epochs: 100
   optimizer_name: Adam
   inject_gan_config: True
   distsup_training: False
@@ -113,21 +119,21 @@ gan_config:
 # Jeżeli alignment zawiera więcej literek, to po prostu przycinam tą ilość
   max_sentence_length: 64
 # waga dla gp_penalty Chińskiego GANa
-  gradient_penalty_ratio: 8.0
+  gradient_penalty_ratio: 10.0
   use_all_letters: False
   supervised: False
   batch_inject_noise: 0.0
   sample_from_middle_of_frame: False
-  filter_blanks: True
+  filter_blanks: False
   # Discriminator part
   dis_steps: 3
   dis_emb_size: 256
   dis_hidden_1_size: 1024
   dis_hidden_2_size: 1024
   dis_maxpool_reduction: 8
-  dis_learning_rate: 0.0002
+  dis_learning_rate: 0.002
   # Generator part
   gen_steps: 1
   gen_hidden_size: 512
-  gen_learning_rate: 0.0001
+  gen_learning_rate: 0.001
   
