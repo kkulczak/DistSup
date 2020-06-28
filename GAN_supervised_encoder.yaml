@@ -59,10 +59,14 @@ Model:
   image_height: 32
   encoder:
     class_name: distsup.modules.convolutional.ConvStack1D
-    hid_channels: 3072
+    hid_channels: 68
     num_strided: 2
-    num_dilated: 4
-    num_postdil: 4
+    num_dilated: 2
+    num_postdil: 3
+#    hid_channels: 3072
+#    num_strided: 2
+#    num_dilated: 4
+#    num_postdil: 4
 # Tą flagą zamieniam ConvStack1D w identyczność nie tracąc kompatybilności wstecznej
     identity: False
   reconstructor:

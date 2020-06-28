@@ -140,7 +140,7 @@ class GanRepresentationLearner(RepresentationLearner):
             # tokens = probes_details['enc_sup_tokens']
             if 'enc_sup_hidden' in probes_details:
                 probe_enc_sup_hidden.append(
-                    safe_squeeze(probes_details['enc_sup_hidden'], 2)
+                    safe_squeeze(stats['encoder_output'], 2).repeat_interleave(4,dim=1)
                 )
 
             if (
@@ -236,7 +236,7 @@ class GanRepresentationLearner(RepresentationLearner):
                 hidden=probe_hidden_es,
                 gt=alis_gt,
             )
-            exit()
+            # exit()
             # REMOVE me
 
             if alis_gt is not None and self.pad_symbol is not None:
@@ -370,7 +370,8 @@ class GanRepresentationLearner(RepresentationLearner):
                 # rec_loss,
             {
                 'gan_tokens': tokens,
-                'gan_batch': gan_batch
+                'gan_batch': gan_batch,
+                'encoder_output': encoder_output.data,
             },  # details,
             tokens_aligned
         )
