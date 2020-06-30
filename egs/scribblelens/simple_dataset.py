@@ -54,11 +54,19 @@ class TextScribbleLensDataset(torch.utils.data.Dataset):
             torch.tensor(self.alphabet.symList2idxList(t))
             for t in self.texts
         ]
+        self.alignments_lens = [None for _ in range(len(self.alignments))]
         if max_lenght is not None:
             for i in range(len(self.alignments)):
                 length = self.alignments[i].shape[0]
-                if length > max_lenght:
+                if length < max_lenght:
+                    self.alignments[i] = torch.cat([
+                        self.alignments[i],
+                        torch.zeros(max_lenght - length, dtype=torch.long)
+                    ])
+                    self.alignments_lens[i] = length
+                else:
                     self.alignments[i] = self.alignments[i][:max_lenght]
+                    self.alignments_lens[i] = max_lenght
 
         if mode == 'id':
             self.features = [
@@ -75,10 +83,6 @@ class TextScribbleLensDataset(torch.utils.data.Dataset):
                 'type': 'categorical',
                 'num_categories': len(self.alphabet)
             },
-            # 'text': {
-            #     'type': 'categorical',
-            #     'num_categories': len(self.alphabet)
-            # },
         }
         if tokens_protos is not None:
             self.tokens_protos = utils.construct_from_kwargs(
@@ -105,4 +109,6 @@ class TextScribbleLensDataset(torch.utils.data.Dataset):
         return {
             'alignment': alignment,
             'features': features,
+            'alignment_len': self.alignments_lens[item],
+            'features_len': self.alignments_lens[item],
         }

@@ -3,34 +3,28 @@ Datasets:
     class_name: distsup.data.FixedDatasetLoader
     batch_size: 32
     dataset:
-#      class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
-#      shape_as_image: true
-      class_name: distsup.data.ChunkedDataset
-      dataset:
-        class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
-        shape_as_image: true
-        tokens_protos:
-          class_name: distsup.modules.gan.utils.EncoderTokensProtos
-          path: "data/55_acc_letters_protoypes.npz"
-          protos_per_token: 1
-      chunk_len: 64
-      pad_with_zeros_if_short: true
-      varlen_fields: [alignment, features]
+      class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
+      shape_as_image: true
+      max_lenght: 75
+      # tokens_protos:
+      #   class_name: distsup.modules.gan.utils.EncoderTokensProtos
+      #   path: "data/55_acc_letters_protoypes.npz"
+      #   protos_per_token: 1
     shuffle: true
     num_workers: 0
     drop_last: true
   dev:
-    class_name: distsup.data.PaddedDatasetLoader
+    class_name: distsup.data.FixedDatasetLoader
     batch_size: 32
     dataset:
       class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
       shape_as_image: true
       eval_size_only: true
-      tokens_protos:
-        class_name: distsup.modules.gan.utils.EncoderTokensProtos
-        path: "data/55_acc_letters_protoypes.npz"
-        protos_per_token: 1
-    varlen_fields: [alignment, features]
+      max_lenght: 75
+      # tokens_protos:
+      #   class_name: distsup.modules.gan.utils.EncoderTokensProtos
+      #   path: "data/55_acc_letters_protoypes.npz"
+      #   protos_per_token: 1
     shuffle: false
     num_workers: 0
     drop_last: true
@@ -84,16 +78,9 @@ Trainer:
     class_name: distsup.data.FixedDatasetLoader
     batch_size: 32
     dataset:
-#      class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
-#      shape_as_image: false
-
-      class_name: distsup.data.ChunkedDataset
-      dataset:
-        class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
-        shape_as_image: false
-      chunk_len: 64
-      pad_with_zeros_if_short: true
-      varlen_fields: [alignment, features]
+      class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
+      shape_as_image: false
+      max_lenght: 75
     shuffle: true
     num_workers: 0
     drop_last: true
@@ -125,7 +112,7 @@ gan_config:
   dictionary_size: 68
 # Tutaj definiujemy długość wyjścia z encodera
 # Jeżeli alignment zawiera więcej literek, to po prostu przycinam tą ilość
-  max_sentence_length: 64
+  max_sentence_length: 75
 # waga dla gp_penalty Chińskiego GANa
   gradient_penalty_ratio: 10.0
   use_all_letters: False

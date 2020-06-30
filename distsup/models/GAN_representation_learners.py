@@ -107,8 +107,8 @@ class GanRepresentationLearner(RepresentationLearner):
         assert enc.shape[1] * self.encoder.length_reduction == x.shape[1]
         b, t, h, c = enc.size()
         enc = enc.contiguous().view(b, t, 1, h * c)
-        quant, kl, info = self.bottleneck(enc, bottleneck_cond, enc_len=enc_len)
-        conds = (self.latent_mixer(quant),)
+        # quant, kl, info = self.bottleneck(enc, bottleneck_cond, enc_len=enc_len)
+        # conds = (self.latent_mixer(quant),)
         return (
             EncoderOutput(data=enc, lens=enc_len),
             tuple(),  # conds,
