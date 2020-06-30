@@ -19,6 +19,7 @@ import os
 import pickle
 import sys
 import re
+from typing import Optional
 import zipfile
 
 import torch.utils.data
@@ -26,18 +27,25 @@ import torch.nn.functional as F
 
 # Future FIXME: extract Path from Aligner into its own class and just import
 #  class Path
+from distsup import utils
+from distsup.modules.gan.utils import EncoderTokensProtos
+
 sys.path.append('/home/kku/Documents/DistSup')
 from distsup.alphabet import Alphabet
 
 
 class TextScribbleLensDataset(torch.utils.data.Dataset):
+    tokens_protos: Optional[EncoderTokensProtos] = None
+
     def __init__(
         self,
         mode='id',
         shape_as_image=False,
         eval_size_only=False,
         texts_path='data/texts_train.pickle',
-        vocabulary='egs/scribblelens/tasman.alphabet.plus.space.mode5.json'
+        vocabulary='egs/scribblelens/tasman.alphabet.plus.space.mode5.json',
+        tokens_protos=None,
+        max_lenght=None,
     ):
         with open(texts_path, 'rb') as f:
             self.texts = pickle.load(f)
@@ -46,17 +54,11 @@ class TextScribbleLensDataset(torch.utils.data.Dataset):
             torch.tensor(self.alphabet.symList2idxList(t))
             for t in self.texts
         ]
-        # for i in range(len(self.alignments)):
-        #     length = self.alignments[i].shape[0]
-        #     if length < 64:
-        #         self.alignments[i] = torch.cat([
-        #             self.alignments[i],
-        #             torch.zeros(64-length, dtype=torch.long)
-        #         ])
-        #     else:
-        #         self.alignments[i] = self.alignments[i][:64]
-
-
+        if max_lenght is not None:
+            for i in range(len(self.alignments)):
+                length = self.alignments[i].shape[0]
+                if length > max_lenght:
+                    self.alignments[i] = self.alignments[i][:max_lenght]
 
         if mode == 'id':
             self.features = [
@@ -78,6 +80,17 @@ class TextScribbleLensDataset(torch.utils.data.Dataset):
             #     'num_categories': len(self.alphabet)
             # },
         }
+        if tokens_protos is not None:
+            self.tokens_protos = utils.construct_from_kwargs(
+                tokens_protos
+            )
+            self.features = [
+                utils.safe_squeeze(
+                    self.tokens_protos.gen_sample(a[None, :]),
+                    dim=0,
+                )
+                for a in self.alignments
+            ]
 
     def __len__(self):
         if self.eval_size_only:
@@ -86,9 +99,10 @@ class TextScribbleLensDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, item):
         features = self.features[item]
+        alignment = self.alignments[item]
         if self.add_channels_dim:
             features = features.unsqueeze(2)
         return {
-            'alignment': self.alignments[item],
+            'alignment': alignment,
             'features': features,
         }

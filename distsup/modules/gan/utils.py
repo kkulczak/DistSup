@@ -196,9 +196,6 @@ class EncoderTokensProtos:
         protos_per_token,
         num_tokens=68,
         deterministic=True,
-        preproc_softmax=False,
-        use_only_recognized=True,
-        use_one_hot=False,
     ) -> None:
         self.protos_per_token = protos_per_token
         self.num_tokens = num_tokens
@@ -212,23 +209,10 @@ class EncoderTokensProtos:
         else:
             arr = path
 
-        if preproc_softmax:
-            data_hidden = F.softmax(
-                torch.from_numpy(arr['hidden']),
-                dim=1,
-            ).numpy()
-        else:
-            data_hidden = arr['hidden']
-
-        if use_only_recognized:
-            recognized = arr['gt'] == data_hidden.argmax(axis=1)
-            hidden = data_hidden[recognized]
-            gt = arr['gt'][recognized]
-            in_case_of_empty = data_hidden[~recognized]
-        else:
-            hidden = data_hidden
-            gt = arr['gt']
-            in_case_of_empty = hidden
+        data_hidden = arr['hidden']
+        hidden = data_hidden
+        gt = arr['gt']
+        in_case_of_empty = hidden
 
         res = []
         for i in range(num_tokens):
@@ -246,14 +230,6 @@ class EncoderTokensProtos:
 
         if deterministic:
             np.random.set_state(st0)
-
-        if use_one_hot:
-            self.protos_per_token = 1
-            self.protos = F.one_hot(
-                torch.arange(num_tokens),
-                num_classes=self.tokens_size
-            ).view(num_tokens, self.tokens_size).float()
-
 
     def gen_sample(self, alignment: torch.Tensor) -> torch.Tensor:
         batch_size, phrase_length = alignment.shape

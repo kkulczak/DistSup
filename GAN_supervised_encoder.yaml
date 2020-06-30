@@ -9,6 +9,10 @@ Datasets:
       dataset:
         class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
         shape_as_image: true
+        tokens_protos:
+          class_name: distsup.modules.gan.utils.EncoderTokensProtos
+          path: "data/55_acc_letters_protoypes.npz"
+          protos_per_token: 1
       chunk_len: 64
       pad_with_zeros_if_short: true
       varlen_fields: [alignment, features]
@@ -22,6 +26,10 @@ Datasets:
       class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
       shape_as_image: true
       eval_size_only: true
+      tokens_protos:
+        class_name: distsup.modules.gan.utils.EncoderTokensProtos
+        path: "data/55_acc_letters_protoypes.npz"
+        protos_per_token: 1
     varlen_fields: [alignment, features]
     shuffle: false
     num_workers: 0

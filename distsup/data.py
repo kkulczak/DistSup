@@ -187,7 +187,7 @@ class ChunkedDataset(torch.utils.data.Dataset):
                     )
 
         ref_len = item[self.varlen_fields[0]].size(0)
-        assert ref_len >= self.chunk_len, f"Item #{idx} is too short (" \
+        assert ref_len > self.chunk_len, f"Item #{idx} is too short (" \
                                          f"{ref_len} > {self.chunk_len})."
 
         ref_offset = ref_len - self.chunk_len
