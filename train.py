@@ -50,7 +50,7 @@ def get_parser():
                         help='Continue experiment from given checkpoint')
     parser.add_argument('-m', '--modify_config', nargs='+', action='append',
                         help="List of config modifications")
-    parser.add_argument('--cuda', default=torch.cuda.is_available(),
+    parser.add_argument('--cuda', default=torch.cuda.is_available() and False,
                         help='Use CUDA', type=str2bool)
     parser.add_argument('--rng-seed', default=None, type=int,
                         help='Reset the rng seed')

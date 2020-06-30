@@ -6,10 +6,10 @@ Datasets:
       class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
       shape_as_image: true
       max_lenght: 75
-      # tokens_protos:
-      #   class_name: distsup.modules.gan.utils.EncoderTokensProtos
-      #   path: "data/55_acc_letters_protoypes.npz"
-      #   protos_per_token: 1
+      tokens_protos:
+        class_name: distsup.modules.gan.utils.EncoderTokensProtos
+        path: "data/55_acc_letters_protoypes.npz"
+        protos_per_token: 1
     shuffle: true
     num_workers: 0
     drop_last: true
@@ -21,10 +21,10 @@ Datasets:
       shape_as_image: true
       eval_size_only: true
       max_lenght: 75
-      # tokens_protos:
-      #   class_name: distsup.modules.gan.utils.EncoderTokensProtos
-      #   path: "data/55_acc_letters_protoypes.npz"
-      #   protos_per_token: 1
+      tokens_protos:
+        class_name: distsup.modules.gan.utils.EncoderTokensProtos
+        path: "data/55_acc_letters_protoypes.npz"
+        protos_per_token: 1
     shuffle: false
     num_workers: 0
     drop_last: true
