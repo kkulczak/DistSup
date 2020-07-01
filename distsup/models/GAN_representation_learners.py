@@ -233,15 +233,15 @@ class GanRepresentationLearner(RepresentationLearner):
             #     logger.log_scalar(f'f1/{k}', np.mean(f1_scores[k]))
 
             alis_es = self._unpad_and_concat(alis_es, alis_lens)
-            # alis_gt = self._unpad_and_concat(alis_gt, alis_lens) if len(
-            #     alis_gt) else None
+            alis_gt = self._unpad_and_concat(alis_gt, alis_lens) if len(
+                alis_gt) else None
 
             scores_to_compute = [
-                #     {
-                #     'prefix': 'all',
-                #     'es': alis_es,
-                #     'gt': alis_gt,
-                # }
+                    {
+                        'prefix': 'all',
+                        'es': alis_es,
+                        'gt': alis_gt,
+                    }
             ]
             # if alis_gt is not None and self.pad_symbol is not None:
             #     not_pad = (alis_gt != self.pad_symbol)
@@ -259,16 +259,16 @@ class GanRepresentationLearner(RepresentationLearner):
                     'gt': gan_gt
                 })
 
-            # if len(probe_enc_sup_es) > 0:
-            #     probe_enc_sup_es = self._unpad_and_concat(
-            #         probe_enc_sup_es,
-            #         alis_lens
-            #     )
-            #     scores_to_compute.append({
-            #         'prefix': 'probe_tokens',
-            #         'es': probe_enc_sup_es,
-            #         'gt': alis_gt
-            #     })
+            if len(probe_enc_sup_es) > 0:
+                probe_enc_sup_es = self._unpad_and_concat(
+                    probe_enc_sup_es,
+                    alis_lens
+                )
+                scores_to_compute.append({
+                    'prefix': 'probe_tokens',
+                    'es': probe_enc_sup_es,
+                    'gt': alis_gt
+                })
                 # if self.pad_symbol is not None:
                 #     not_pad = (alis_gt != self.pad_symbol)
                 #     scores_to_compute.append({
@@ -286,12 +286,12 @@ class GanRepresentationLearner(RepresentationLearner):
 
                     all_scores[f'acc/{prefix}'] = (es == gt).mean()
 
-                    mapping_scores, mapping = self._mapping_metrics(
-                        gt,
-                        es,
-                        prefix=prefix
-                    )
-                    all_scores.update(mapping_scores)
+                    # mapping_scores, mapping = self._mapping_metrics(
+                    #     gt,
+                    #     es,
+                    #     prefix=prefix
+                    # )
+                    # all_scores.update(mapping_scores)
 
                     # Run the segmentation plottin with mapping
                     # if logger.is_currently_logging():

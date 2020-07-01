@@ -42,7 +42,20 @@ Datasets:
     shuffle: false
     num_workers: 4
     drop_last: True
-
+  test-dev:
+    class_name: distsup.data.PaddedDatasetLoader
+    batch_size: 32
+    dataset:
+      class_name: egs.scribblelens.data.ScribbleLensDataset
+      split: test
+      alignment_root: "data/scribblelens.paths.1.4b.zip"
+      vocabulary: egs/scribblelens/tasman.alphabet.plus.space.mode5.json
+      drop_blanks: true
+    varlen_fields: [features, alignment]
+    rename_dict:
+      image: features
+    shuffle: false
+    num_workers: 4
 Model:
   class_name: distsup.models.GAN_representation_learners.GanRepresentationLearner
   image_height: 32
@@ -56,15 +69,15 @@ Model:
     identity: false
   reconstructor:
     class_name: distsup.modules.reconstructors.NullReconstructor
-  #  aux_heads:
-  #    enc_sup:
-  #      layer: encoder
-  #      target: alignment
-  #      predictor:
-  #        class_name: distsup.modules.predictors.FramewisePredictor
-  #        aggreg: 1
-  #        use_two_layer_predictor: False
-  #      bp_to_main: True
+    aux_heads:
+      enc_sup:
+        layer: encoder
+        target: alignment
+        predictor:
+          class_name: distsup.modules.predictors.FramewisePredictor
+          aggreg: 1
+          use_two_layer_predictor: False
+        bp_to_main: True
   gan_generator:
     class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
     inject_gan_config: True
@@ -141,7 +154,7 @@ gan_config:
   use_all_letters: False
   supervised: False
   batch_inject_noise: 0.0
-  sample_from_middle_of_frame: True
+  sample_from_middle_of_frame: False
   filter_blanks: False
   # Discriminator part
   dis_steps: 3
