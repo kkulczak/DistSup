@@ -148,6 +148,7 @@ class ChunkedDataset(torch.utils.data.Dataset):
         transform=None,
         oversample=1,
         pad_with_zeros_if_short=False,
+        offset_always_zero=False,
     ):
         self.dataset = utils.construct_from_kwargs(dataset)
         self.chunk_len = chunk_len
@@ -155,6 +156,7 @@ class ChunkedDataset(torch.utils.data.Dataset):
         self.drop_fields = set(drop_fields)
         self.training = training
         self.pad_with_zeros_if_short = pad_with_zeros_if_short
+        self.offset_always_zero = offset_always_zero
         if transform:
             self.transform = utils.construct_from_kwargs(transform)
         else:
@@ -192,7 +194,9 @@ class ChunkedDataset(torch.utils.data.Dataset):
 
         ref_offset = ref_len - self.chunk_len
 
-        if self.training:
+        if self.offset_always_zero:
+            ref_offset = 0
+        elif self.training:
             ref_offset = random.randrange(ref_offset)
         else:
             ref_offset = ref_offset // 2

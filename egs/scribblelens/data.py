@@ -271,6 +271,8 @@ class ScribbleLensDataset(torch.utils.data.Dataset):
                  transform=None,
                  alignment_mod=70,
                  enforce_small_as_test=None,
+                 drop_blanks=False,
+                 drop_image=False,
                  ):
         """
         Args:
@@ -294,6 +296,8 @@ class ScribbleLensDataset(torch.utils.data.Dataset):
             The alphabet or vocabulary needs to be generated with an extra tool like
                      generateAlphabet.py egs/scribblelens/yamls/tasman.yaml
         """
+        self.drop_image = drop_image
+        self.drop_blanks = drop_blanks
         self.root = root
         self.alignment_mod = alignment_mod
         self.enforce_small_as_test = enforce_small_as_test
@@ -664,6 +668,13 @@ class ScribbleLensDataset(torch.utils.data.Dataset):
         if not self.file:  # Reopen to work with multiprocessing
             self.file = zipfile.ZipFile(self.root)
         item = self.data[idx]
+        if self.drop_image:
+            alignment = item['alignment']
+            if self.drop_blanks:
+                blanks = alignment == 0
+                alignment = alignment[~blanks]
+            return {'alignment': alignment}
+
 
         df_item = self.data_frame.iloc[idx]
         item['scribe'] = df_item['scribe']
@@ -735,6 +746,12 @@ class ScribbleLensDataset(torch.utils.data.Dataset):
                 raise Exception("Bad alignment length")
 
         new_item['alignment'] %= self.alignment_mod
+        if self.drop_blanks:
+            blanks = new_item['alignment'] == 0
+            new_item['alignment'] = new_item['alignment'][~blanks]
+            new_item['image'] = new_item['image'][~blanks]
+
+
         return new_item
 
 

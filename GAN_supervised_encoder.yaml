@@ -3,54 +3,68 @@ Datasets:
     class_name: distsup.data.FixedDatasetLoader
     batch_size: 32
     dataset:
-      class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
-      shape_as_image: true
-      max_lenght: 75
-      tokens_protos:
-        class_name: distsup.modules.gan.utils.EncoderTokensProtos
-        path: "data/55_acc_letters_protoypes.npz"
-        protos_per_token: 1
+      class_name: distsup.data.ChunkedDataset
+      dataset:
+        class_name: egs.scribblelens.data.ScribbleLensDataset
+        split: train
+        alignment_root: "data/scribblelens.paths.1.4b.zip"
+        vocabulary: egs/scribblelens/tasman.alphabet.plus.space.mode5.json
+        drop_blanks: true
+      chunk_len: 384
+      pad_with_zeros_if_short: true
+      offset_always_zero: true
+      varlen_fields: [image, alignment]
+      drop_fields: [text, alignment_rle, page_side, page]
+    rename_dict:
+      image: features
     shuffle: true
-    num_workers: 0
-    drop_last: true
+    num_workers: 4
+    drop_last: True
   dev:
-    class_name: distsup.data.FixedDatasetLoader
+    class_name: distsup.data.PaddedDatasetLoader
     batch_size: 32
     dataset:
-      class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
-      shape_as_image: true
-      eval_size_only: true
-      max_lenght: 75
-      tokens_protos:
-        class_name: distsup.modules.gan.utils.EncoderTokensProtos
-        path: "data/55_acc_letters_protoypes.npz"
-        protos_per_token: 1
+      class_name: distsup.data.ChunkedDataset
+      dataset:
+        class_name: egs.scribblelens.data.ScribbleLensDataset
+        split: train
+        alignment_root: "data/scribblelens.paths.1.4b.zip"
+        vocabulary: egs/scribblelens/tasman.alphabet.plus.space.mode5.json
+        drop_blanks: true
+        enforce_small_as_test: true
+      chunk_len: 384
+      pad_with_zeros_if_short: true
+      offset_always_zero: true
+      varlen_fields: [image, alignment]
+      drop_fields: [text, alignment_rle, page_side, page]
+    rename_dict:
+      image: features
     shuffle: false
-    num_workers: 0
-    drop_last: true
+    num_workers: 4
+    drop_last: True
 
 Model:
   class_name: distsup.models.GAN_representation_learners.GanRepresentationLearner
-  image_height: 68
+  image_height: 32
   encoder:
     class_name: distsup.modules.convolutional.ConvStack1D
     hid_channels: 68
     num_strided: 2
     num_dilated: 2
     num_postdil: 3
-# Tą flagą zamieniam ConvStack1D w identyczność nie tracąc kompatybilności wstecznej
-    identity: True
+    # Tą flagą zamieniam ConvStack1D w identyczność nie tracąc kompatybilności wstecznej
+    identity: false
   reconstructor:
     class_name: distsup.modules.reconstructors.NullReconstructor
-#  aux_heads:
-#    enc_sup:
-#      layer: encoder
-#      target: alignment
-#      predictor:
-#        class_name: distsup.modules.predictors.FramewisePredictor
-#        aggreg: 1
-#        use_two_layer_predictor: False
-#      bp_to_main: True
+  #  aux_heads:
+  #    enc_sup:
+  #      layer: encoder
+  #      target: alignment
+  #      predictor:
+  #        class_name: distsup.modules.predictors.FramewisePredictor
+  #        aggreg: 1
+  #        use_two_layer_predictor: False
+  #      bp_to_main: True
   gan_generator:
     class_name: distsup.modules.gan.generator_net.LinearGeneratorNet
     inject_gan_config: True
@@ -78,12 +92,21 @@ Trainer:
     class_name: distsup.data.FixedDatasetLoader
     batch_size: 32
     dataset:
-      class_name: egs.scribblelens.simple_dataset.TextScribbleLensDataset
-      shape_as_image: false
-      max_lenght: 75
+      class_name: distsup.data.ChunkedDataset
+      dataset:
+        class_name: egs.scribblelens.data.ScribbleLensDataset
+        split: train
+        alignment_root: "data/scribblelens.paths.1.4b.zip"
+        vocabulary: egs/scribblelens/tasman.alphabet.plus.space.mode5.json
+        drop_blanks: true
+        drop_image: true
+      chunk_len: 384
+      pad_with_zeros_if_short: true
+      offset_always_zero: true
+      varlen_fields: [alignment]
     shuffle: true
     num_workers: 0
-    drop_last: true
+    drop_last: True
   checkpointer:
     every_n_hours: 4
   learning_rate: 0.001
@@ -102,23 +125,23 @@ Trainer:
 # W ten sposób mogę współdzielić ustawienia między klasami.
 # Jest to brzydki hack :(
 gan_config:
-# Ustawienie na 1 wyłącza funkcjonalnosć. Wzięte od Chińczyków
+  # Ustawienie na 1 wyłącza funkcjonalnosć. Wzięte od Chińczyków
   concat_window: 1
   repeat: 1
-# Uproszczenie zadania
-# Zmniejszyłem do 7 dostępne literki
-# W ScribleLensdataset biorę alignment mod 7 [egs/scribblelens/data.py:733]
-# Trzeba zmienić
+  # Uproszczenie zadania
+  # Zmniejszyłem do 7 dostępne literki
+  # W ScribleLensdataset biorę alignment mod 7 [egs/scribblelens/data.py:733]
+  # Trzeba zmienić
   dictionary_size: 68
-# Tutaj definiujemy długość wyjścia z encodera
-# Jeżeli alignment zawiera więcej literek, to po prostu przycinam tą ilość
+  # Tutaj definiujemy długość wyjścia z encodera
+  # Jeżeli alignment zawiera więcej literek, to po prostu przycinam tą ilość
   max_sentence_length: 75
-# waga dla gp_penalty Chińskiego GANa
+  # waga dla gp_penalty Chińskiego GANa
   gradient_penalty_ratio: 10.0
   use_all_letters: False
   supervised: False
   batch_inject_noise: 0.0
-  sample_from_middle_of_frame: False
+  sample_from_middle_of_frame: True
   filter_blanks: False
   # Discriminator part
   dis_steps: 3

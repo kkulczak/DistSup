@@ -69,8 +69,14 @@ class SecondaryTrainerGAN:
 
     def sample_real_batch(self) -> torch.Tensor:
         batch = self.sample_alignments()
-        features = batch['features']
-
+        # features = batch['features']
+        features = F.one_hot(
+            self.data_manipulator.extract_alignment_data(
+                batch['alignment'],
+                auto_length=False
+            ).target,
+            num_classes=self.config.dictionary_size,
+        ).float()
         if Globals.cuda:
             features = features.to('cuda')
         return features
