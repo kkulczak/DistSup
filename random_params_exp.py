@@ -11,7 +11,7 @@ import yaml
 PARAMETERS = {
     # 'Model.letters_protos.protos_per_token': [1],
     # 'Model.letters_protos.preproc_softmax': [True],
-    'Trainer.num_epochs': 30,
+    'Trainer.num_epochs': 40,
 }
 
 
@@ -73,8 +73,8 @@ def run_exp(dir_name, how_many=1, debug=False):
             'GAN_supervised_encoder.yaml',
             destination_dir,
             '--rng-seed', f'{np.random.randint(9999)}',
-            # '--initialize-from', '55_sup_enc.pkl',
-            # '-r', 'gan', 'probe'
+            '--initialize-from', '55_sup_enc.pkl',
+            '-r', 'gan', 'probe'
         ]
         if debug:
             run_cmd.append('-d')
