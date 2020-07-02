@@ -154,7 +154,7 @@ gan_config:
   use_all_letters: False
   supervised: False
   batch_inject_noise: 0.0
-  sample_from_middle_of_frame: False
+  sample_from_middle_of_frame: True
   filter_blanks: False
   # Discriminator part
   dis_steps: 3
