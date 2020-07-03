@@ -106,7 +106,7 @@ class TextScribbleLensDataset(torch.utils.data.Dataset):
     def __len__(self):
         if self.eval_size_only:
             return 512
-        return len(self.texts)
+        return len(self.alignments)
 
     def __getitem__(self, item):
         features = self.features[item]
