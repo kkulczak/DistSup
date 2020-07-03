@@ -44,12 +44,12 @@ class SecondaryTrainerGAN:
 
         if self.config.backprop_ecoder:
             gan_params = [
-                self.model.encoder.parameters(),
-                self.model.gan_generator.parameters(),
+                {'params': self.model.encoder.parameters()},
+                    {'params': self.model.gan_generator.parameters()},
             ]
         else:
             gan_params = [
-                self.model.gan_generator.parameters(),
+                {'params': self.model.gan_generator.parameters()},
             ]
         self.optimizer_gen = optim.Adam(
             gan_params,
