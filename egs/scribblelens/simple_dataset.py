@@ -46,6 +46,7 @@ class TextScribbleLensDataset(torch.utils.data.Dataset):
         vocabulary='egs/scribblelens/tasman.alphabet.plus.space.mode5.json',
         tokens_protos=None,
         max_lenght=None,
+        unmatched_real_sample=None,
     ):
         with open(texts_path, 'rb') as f:
             self.texts = pickle.load(f)
@@ -54,6 +55,12 @@ class TextScribbleLensDataset(torch.utils.data.Dataset):
             torch.tensor(self.alphabet.symList2idxList(t))
             for t in self.texts
         ]
+        if unmatched_real_sample is not None:
+            if unmatched_real_sample:
+                self.alignments = self.alignments[::2]
+            else:
+                self.alignments = self.alignments[1::2]
+
         self.alignments_lens = [None for _ in range(len(self.alignments))]
         if max_lenght is not None:
             for i in range(len(self.alignments)):
