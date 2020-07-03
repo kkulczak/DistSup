@@ -28,6 +28,7 @@ class GanConfig:
     dis_maxpool_reduction: int = 1
     filter_blanks: bool = False
     sample_from_middle_of_frame: bool = False
+    backprop_ecoder: bool = False
 
 
 @dataclass

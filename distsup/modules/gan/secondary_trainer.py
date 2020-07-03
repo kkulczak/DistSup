@@ -41,8 +41,18 @@ class SecondaryTrainerGAN:
         self.alignments_dataloader = alignments_dataloader
         self.alignments_iter = iter(self.alignments_dataloader)
 
+
+        if self.config.backprop_ecoder:
+            gan_params = [
+                self.model.encoder.parameters(),
+                self.model.gan_generator.parameters(),
+            ]
+        else:
+            gan_params = [
+                self.model.gan_generator.parameters(),
+            ]
         self.optimizer_gen = optim.Adam(
-            self.model.gan_generator.parameters(),
+            gan_params,
             lr=self.config.gen_learning_rate,
             betas=(0.5, 0.9),
         )

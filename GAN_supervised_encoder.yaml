@@ -61,7 +61,7 @@ Model:
   image_height: 32
   encoder:
     class_name: distsup.modules.convolutional.ConvStack1D
-    hid_channels: 68
+    hid_channels: 128
     num_strided: 2
     num_dilated: 2
     num_postdil: 3
@@ -156,6 +156,7 @@ gan_config:
   batch_inject_noise: 0.0
   sample_from_middle_of_frame: True
   filter_blanks: False
+  backprop_ecoder: True
   # Discriminator part
   dis_steps: 3
   dis_emb_size: 256
