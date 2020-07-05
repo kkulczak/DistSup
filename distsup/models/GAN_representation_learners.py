@@ -259,16 +259,16 @@ class GanRepresentationLearner(RepresentationLearner):
                     'gt': gan_gt
                 })
 
-            if len(probe_enc_sup_es) > 0:
-                probe_enc_sup_es = self._unpad_and_concat(
-                    probe_enc_sup_es,
-                    alis_lens
-                )
-                scores_to_compute.append({
-                    'prefix': 'probe_tokens',
-                    'es': probe_enc_sup_es,
-                    'gt': alis_gt
-                })
+            # if len(probe_enc_sup_es) > 0:
+            #     probe_enc_sup_es = self._unpad_and_concat(
+            #         probe_enc_sup_es,
+            #         alis_lens
+            #     )
+            #     scores_to_compute.append({
+            #         'prefix': 'probe_tokens',
+            #         'es': probe_enc_sup_es,
+            #         'gt': alis_gt
+            #     })
                 # if self.pad_symbol is not None:
                 #     not_pad = (alis_gt != self.pad_symbol)
                 #     scores_to_compute.append({
@@ -314,8 +314,8 @@ class GanRepresentationLearner(RepresentationLearner):
                     # )
                     # all_scores.update(clustering_scores)
 
-                perplexity_scores = self._perplexity_metrics(es, prefix=prefix)
-                all_scores.update(perplexity_scores)
+                # perplexity_scores = self._perplexity_metrics(es, prefix=prefix)
+                # all_scores.update(perplexity_scores)
 
         return all_scores
 

@@ -9,9 +9,12 @@ import numpy as np
 import yaml
 
 PARAMETERS = {
-    # 'Model.letters_protos.protos_per_token': [1],
-    # 'Model.letters_protos.preproc_softmax': [True],
-    'Trainer.num_epochs': 40,
+    'Model.encoder.hid_channels': [16, 64, 32, 128, 256, 512, 1024],
+    'Model.encoder.num_preproc': [0, 1, 2],
+    'Model.encoder.num_dilated': [1, 2, 3, 4],
+    'Model.encoder.num_postdil': [3, 2, 4, 5],
+    'Model.encoder.num_postproc': [0, 1, 2],
+    'Trainer.num_epochs': 200,
 }
 
 
@@ -73,8 +76,8 @@ def run_exp(dir_name, how_many=1, debug=False):
             'GAN_supervised_encoder.yaml',
             destination_dir,
             '--rng-seed', f'{np.random.randint(9999)}',
-            '--initialize-from', '55_sup_enc.pkl',
-            '-r', 'gan', 'probe'
+            # '--initialize-from', '55_sup_enc.pkl',
+            # '-r', 'gan', 'probe'
         ]
         if debug:
             run_cmd.append('-d')
