@@ -102,4 +102,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     while True:
-        run_exp(dir_name=args.dir_name, how_many=args.repeat, debug=args.debug)
+        try:
+            run_exp(dir_name=args.dir_name, how_many=args.repeat, debug=args.debug)
+        except Exception:
+            pass
